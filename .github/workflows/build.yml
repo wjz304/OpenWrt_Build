@@ -87,15 +87,15 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_SHELL
 
 
-    - name: SSH Action
-      uses: appleboy/ssh-action@master
-      if: (github.event.inputs.ssh == 'true') || contains(github.event.action, 'ssh')
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        password: ${{ secrets.PASSWORD }}
-        port: ${{ secrets.PORT }}
-        script: whoami
+#    - name: SSH Action
+#      uses: appleboy/ssh-action@master
+#      if: (github.event.inputs.ssh == 'true') || contains(github.event.action, 'ssh')
+#      with:
+#        host: ${{ secrets.HOST }}
+#        username: ${{ secrets.USERNAME }}
+#        password: ${{ secrets.PASSWORD }}
+#        port: ${{ secrets.PORT }}
+#        script: whoami
 
 
     - name: Download package
@@ -129,17 +129,10 @@ jobs:
       id: organize
       run: |
         cd openwrt/bin/targets/*/*
-        rm -rf packages
+        rm -rf packages *.buildinfo *.manifest *.bin
+        sed -i '/buildinfo/d; /.bin/d; /.manifest/d' sha256sums
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "::set-output name=status::success"
-
-
-    - name: Upload firmware directory
-      uses: actions/upload-artifact@main
-      if: steps.organize.outputs.status == 'success' && !cancelled()
-      with:
-        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
-        path: ${{ env.FIRMWARE }}
 
 
     - name: Generate release tag

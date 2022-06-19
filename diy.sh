@@ -14,10 +14,12 @@
 
 
 
-# uninstall luci/themes/luci-theme-argon
+# uninstall duplicate packages
 #./scripts/feeds uninstall luci-theme-argon
-# uninstall luci/luci-app-netdata
 #./scripts/feeds uninstall luci-app-netdata
+#./scripts/feeds uninstall luci-app-smartdns
+#./scripts/feeds uninstall luci-app-pushbot
+
 # install the new version in the ing source
 #./scripts/feeds install -a -f -p ing
 
@@ -77,4 +79,5 @@ sed -i "/\/usr\/bin\/ip/a mkdir \/opt" package/lean/default-settings/files/zzz-d
 
 
 # 修改插件名字
+# sed -i 's/\"Argon 主题设置\"/\"主题设置\"/g' package/community/luci-app-argon-config/po/zh-cn/argon-config.po
 # sed -i 's/"挂载 SMB 网络共享"/"挂载共享"/g' `grep "挂载 SMB 网络共享" -rl ./`
