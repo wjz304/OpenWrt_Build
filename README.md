@@ -20,6 +20,10 @@ Web admin panel default IP is 192.168.2.1 and default password is "password".
 - When the build is complete, click the `Artifacts` button in the upper right corner of the Actions page to download the binaries.
 
 
+## Preview
+![Image text](screenshot/2022.06.19-2045.jpeg)  
+
+
 ## Credits
 - [OpenWrt](https://github.com/openwrt/openwrt)
 - [Lean's OpenWrt](https://github.com/coolsnowwolf/lede)
