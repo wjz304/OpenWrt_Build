@@ -82,28 +82,15 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_SHELL
 
 
-#    - name: SSH Action
-#      uses: invi5H/ssh-action@v1.0.0
-#      if: (github.event.inputs.ssh == 'true') || contains(github.event.action, 'ssh')
-#      with:
-#        SSH_HOST: ${{ secrets.SSH_HOST }}
-#        SSH_PORT: ${{ secrets.SSH_PORT }}
-#        SSH_USER: ${{ secrets.SSH_USER }}
-#        SSH_KEY: ${{ secrets.SSH_KEY }}
-#      run: ssh ${{ steps.ssh.outputs.SERVER }} pwd
-
-
-    - name: Deploy to Server
-      uses: easingthemes/ssh-deploy@main
+    - name: SSH Action
+      uses: appleboy/ssh-action@master
       if: (github.event.inputs.ssh == 'true') || contains(github.event.action, 'ssh')
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
-        ARGS: "-rltgoDzvO --delete"
-        SOURCE: "dist/"
-        REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-        REMOTE_USER: ${{ secrets.REMOTE_USER }}
-        TARGET: ${{ secrets.REMOTE_TARGET }}
-        EXCLUDE: "/dist/, /node_modules/"
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        password: ${{ secrets.PASSWORD }}
+        port: ${{ secrets.PORT }}
+        script: whoami
 
 
     - name: Download package
@@ -141,6 +128,7 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "::set-output name=status::success"
 
+
     - name: Upload firmware directory
       uses: actions/upload-artifact@main
       if: steps.organize.outputs.status == 'success' && !cancelled()
@@ -155,6 +143,7 @@ jobs:
         echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
         echo "::set-output name=status::success"
 
+
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
       if: steps.tag.outputs.status == 'success' && !cancelled()
@@ -164,11 +153,13 @@ jobs:
         tag_name: ${{ steps.tag.outputs.release_tag }}
         files: ${{ env.FIRMWARE }}/*
 
+
     - name: Delete workflow runs
       uses: GitRML/delete-workflow-runs@main
       with:
         retain_days: 1
         keep_minimum_runs: 3
+
 
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@v0.1.0
