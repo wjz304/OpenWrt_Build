@@ -6,7 +6,7 @@
 
 ## Note
 
-A actions for building OpenWrt with GitHub Actions  
+既然没有想要的功能，那就自己编吧！
 
 Web admin panel default IP is 192.168.2.1 and default password is "password".  
 
