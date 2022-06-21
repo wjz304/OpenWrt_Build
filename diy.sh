@@ -34,7 +34,14 @@ sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generat
 
 # Modify hostname
 #sed -i 's/OpenWrt/OpenWrting/g' package/base-files/files/bin/config_generate
+
+
+# Modify ssid
 #sed -i 's/OpenWrt/OpenWrting/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
+# Enable wifi
+#sed -i 's/.disabled=1/.disabled=0/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
+# Enable MU-MIMO
+#sed -i 's/mu_beamformer=0/mu_beamformer=1/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
 
 # Modify the version number
@@ -73,10 +80,6 @@ sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' packag
 [ -z $(grep "CONFIG_KERNEL_BUILD_DOMAIN=" .config) ] &&
     echo 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >>.config ||
     sed -i 's@\(CONFIG_KERNEL_BUILD_DOMAIN=\).*@\1$"GitHub Actions"@' .config
-
-
-# create /opt
-sed -i "/\/usr\/bin\/ip/a mkdir \/opt" package/lean/default-settings/files/zzz-default-settings
 
 
 # Modify app list
