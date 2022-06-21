@@ -98,8 +98,8 @@ sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argo
 
 
 # build po2lmo
-if [ -d "feeds/ing/luci-app-openclash/tools/po2lmo" ]; then
-    pushd feeds/ing/luci-app-openclash/tools/po2lmo
-    make && sudo make install
-    popd
-fi
+#if [ -d "feeds/ing/luci-app-openclash/tools/po2lmo" ]; then
+#    pushd feeds/ing/luci-app-openclash/tools/po2lmo
+#    make && sudo make install
+#    popd
+#fi
