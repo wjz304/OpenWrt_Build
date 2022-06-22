@@ -12,7 +12,7 @@ Web admin panel default IP is 192.168.2.1 and default password is "password".
 
 
 ## Preview
-![Image text](screenshot/2022.06.19-2045.jpeg)  
+![Image text](screenshot/2022.06.22-1941.jpeg)  
 
 
 ## Credits
