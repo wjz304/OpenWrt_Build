@@ -98,8 +98,17 @@ sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argo
 
 
 # build po2lmo
-#if [ -d "feeds/ing/luci-app-openclash/tools/po2lmo" ]; then
-#    pushd feeds/ing/luci-app-openclash/tools/po2lmo
-#    make && sudo make install
-#    popd
-#fi
+if [ -d "feeds/ing/luci-app-openclash/tools/po2lmo" ]; then
+    pushd feeds/ing/luci-app-openclash/tools/po2lmo
+    make && sudo make install
+    popd
+fi
+
+# Info
+# luci-app-netdata 1.33.1汉化版 导致 web升级后 报错: /usr/lib/lua/luci/dispatcher.lua:220: /etc/config/luci seems to be corrupt, unable to find section 'main'
+
+# CONFIG_PACKAGE_luci-app-bypass_INCLUDE_Trojan-Go 
+# CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_GO
+# CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan
+# CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_IPT2Socks
+# CONFIG_PACKAGE_trojan-go  导致 web升级后 报错: /usr/lib/lua/luci/dispatcher.lua:220: /etc/config/luci seems to be corrupt, unable to find section 'main'
