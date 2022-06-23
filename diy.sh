@@ -82,6 +82,10 @@ sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' packag
     sed -i 's@\(CONFIG_KERNEL_BUILD_DOMAIN=\).*@\1$"GitHub Actions"@' .config
 
 
+# Modify rootfs size
+sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=.*$/CONFIG_TARGET_ROOTFS_PARTSIZE=256/' .config
+
+
 # Modify app list
 sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/luci/luci-app-ipsec-server/luasrc/controller/ipsec-server.lua    # `grep "IPSec VPN Server" -rl ./`
 sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/luci/luci-app-ipsec-vpnd/luasrc/controller/ipsec-server.lua    # `grep "IPSec VPN Server" -rl ./`
@@ -112,3 +116,5 @@ fi
 # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan
 # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_IPT2Socks
 # CONFIG_PACKAGE_trojan-go  导致 web升级后 报错: /usr/lib/lua/luci/dispatcher.lua:220: /etc/config/luci seems to be corrupt, unable to find section 'main'
+
+# luci-app-beardropper 导致 web升级后 /etc/config/network 信息丢失
