@@ -1,8 +1,13 @@
 # OpenWrt_Build
 
-
-
-[![LICENSE](https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square&label=LICENSE)](LICENSE)
+<!-- version -->
+<a href="https://github.com/wjz304/OpenWrt_Build/releases">
+<img src="https://img.shields.io/github/release-pre/wjz304/OpenWrt_Build.svg?style=flat" alt="latest version"/>
+</a>
+<!-- license -->
+<a href="https://github.com/wjz304/OpenWrt_Build">
+<img src="https://img.shields.io/github/license/mashape/apistatus.svg?style=flat" alt="license"/>
+</a>
 
 ## Note
 
