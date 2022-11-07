@@ -105,16 +105,16 @@ jobs:
         cd openwrt/bin/targets/*/*
         rm -rf packages *.buildinfo *.manifest *.bin
         sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+        echo "firmware_dir=$PWD" >> $GITHUB_ENV
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
-      if: steps.tag.outputs.status == 'success' && !cancelled()
+      if: !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.tag.outputs.release_tag }}
-        files: ${{ env.FIRMWARE }}/*
+        tag_name: ${{ env.release_tag }}
+        files: ${{ env.firmware_dir }}/*
 
     #- name: Delete workflow runs
     #  uses: Mattraks/delete-workflow-runs@v2
