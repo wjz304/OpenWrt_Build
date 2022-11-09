@@ -59,11 +59,10 @@ jobs:
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        ln -sf /openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: Load custom feeds
       run: |
-        [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
+        [ -e $FEEDS_CONF ] && cp $FEEDS_CONF openwrt/feeds.conf.default
 
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
@@ -73,7 +72,7 @@ jobs:
 
     - name: Load custom configuration
       run: |
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
         chmod +x $DIY_SHELL
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SHELL
@@ -116,6 +115,15 @@ jobs:
       with:
         tag_name: ${{ env.release_tag }}
         files: ${{ env.firmware_dir }}/*
+
+    - name: Check and Push
+      run: |
+        [ -e $CONFIG_FILE ] && cp openwrt/.config $CONFIG_FILE
+        if [ -n "$(git status -s | grep $CONFIG_FILE)" ]; then
+          git add $CONFIG_FILE
+          git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
+          git push -f
+        fi
 
     #- name: Delete workflow runs
     #  uses: Mattraks/delete-workflow-runs@v2
