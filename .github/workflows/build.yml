@@ -114,7 +114,7 @@ jobs:
         cd openwrt/bin/targets/*/*
         rm -rf packages *.buildinfo *.manifest *.bin
         sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
-        for i in `ls` ; do tar zcvf $i.tgz $i; done
+        for i in `ls` ; do gzip $i; done
         echo "firmware_dir=$PWD" >> $GITHUB_ENV
 
 
@@ -125,7 +125,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.release_tag }}
-        files: ${{ env.firmware_dir }}/*.tgz
+        files: ${{ env.firmware_dir }}/*
 
     - name: Check and Push
       run: |
