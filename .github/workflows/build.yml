@@ -85,8 +85,12 @@ jobs:
     - name: Download package
       run: |
         cd openwrt
+
         make defconfig
+        cat .config
+
         make download -j8 V=s
+
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
@@ -110,7 +114,9 @@ jobs:
         cd openwrt/bin/targets/*/*
         rm -rf packages *.buildinfo *.manifest *.bin
         sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
+        for i in `ls` ; do tar zcvf $i.tgz $i; done
         echo "firmware_dir=$PWD" >> $GITHUB_ENV
+
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
@@ -119,7 +125,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.release_tag }}
-        files: ${{ env.firmware_dir }}/*
+        files: ${{ env.firmware_dir }}/*.tgz
 
     - name: Check and Push
       run: |
