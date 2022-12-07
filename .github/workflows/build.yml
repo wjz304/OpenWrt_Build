@@ -85,21 +85,32 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SHELL
 
-    - name: Download package
+    - name: Make config
       run: |
         cd openwrt
 
         make defconfig
         cat .config
 
+    - name: Check and Push config
+      run: |
+        [ -e $CONFIG_FILE ] && cp openwrt/.config $CONFIG_FILE
+        if [ -n "$(git status -s | grep $CONFIG_FILE)" ]; then
+          git add $CONFIG_FILE
+          git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
+          git push -f
+        fi
+
+    - name: Compile the firmware
+      run: |
+        cd openwrt
+
+        echo -e "download package"
         make download -j8 V=s
 
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
-    - name: Compile the firmware
-      run: |
-        cd openwrt
         echo -e "$(nproc) thread compile"
         make -j$(nproc) V=s
 
@@ -120,7 +131,6 @@ jobs:
         for i in `ls` ; do gzip $i; done
         echo "firmware_dir=$PWD" >> $GITHUB_ENV
 
-
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
       if: (!cancelled())
@@ -129,15 +139,6 @@ jobs:
       with:
         tag_name: ${{ env.release_tag }}
         files: ${{ env.firmware_dir }}/*
-
-    - name: Check and Push
-      run: |
-        [ -e $CONFIG_FILE ] && cp openwrt/.config $CONFIG_FILE
-        if [ -n "$(git status -s | grep $CONFIG_FILE)" ]; then
-          git add $CONFIG_FILE
-          git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
-          git push -f
-        fi
 
     #- name: Delete workflow runs
     #  uses: Mattraks/delete-workflow-runs@v2
