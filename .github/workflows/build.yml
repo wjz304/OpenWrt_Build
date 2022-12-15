@@ -126,9 +126,10 @@ jobs:
       if: (!cancelled())
       run: |
         cd openwrt/bin/targets/*/*
+        ls -al
         rm -rf packages *.buildinfo *.manifest *.bin
         sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
-        for i in `ls` ; do gzip $i; done
+        # for i in `ls` ; do gzip $i; done
         echo "firmware_dir=$PWD" >> $GITHUB_ENV
 
     - name: Upload firmware to release
