@@ -23,6 +23,16 @@
 ![Image text](screenshot/2022.06.22-1941.jpeg)  
 
 
+<pre>
+报错：
+Collected errors:
+ * opkg_download: Failed to download https://mirrors.cloud.tencent.com/lede/snapshots/packages/x86_64/ing/Packages.gz, wget returned 8.
+
+解决：
+sed -i 's|^src/gz openwrt_ing|#src/gz openwrt_ing|' /etc/opkg/distfeeds.conf 
+</pre>
+
+
 ## Credits
 - [OpenWrt](https://github.com/openwrt/openwrt)
 - [Lean's LEDE](https://github.com/coolsnowwolf/lede)
