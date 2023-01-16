@@ -27,7 +27,7 @@ env:
   CONFIG_FILE: simple.config
   DIY_SHELL: diy.sh
   TZ: Asia/Shanghai
-
+  TAG_NAME: Simple Firmware
 
 jobs:
   build:
@@ -116,7 +116,7 @@ jobs:
 
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
         [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
-        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_ENV
+        echo "release_tag=$TAG_NAME" >> $GITHUB_ENV
 
     - name: Check space usage
       if: (!cancelled())
