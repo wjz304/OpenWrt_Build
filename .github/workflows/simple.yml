@@ -27,7 +27,7 @@ env:
   CONFIG_FILE: simple.config
   DIY_SHELL: diy.sh
   TZ: Asia/Shanghai
-  TAG_NAME : Simple Firmware
+  RELEASE_NAME : Simple Firmware
 
 jobs:
   build:
@@ -123,7 +123,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: $TAG_NAME
+        release_name: $RELEASE_NAME
+        tag_name: ${{ env.release_tag }}
         files: ${{ env.firmware_dir }}/*
 
     #- name: Delete workflow runs
