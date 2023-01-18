@@ -11,7 +11,7 @@
 #
 
 
-name: Build OpenWrt
+name: Simple Firmware
 
 on:
   schedule:
@@ -31,7 +31,7 @@ env:
 
 jobs:
   build:
-    name: Build OpenWrt
+    name: Simple Firmware
     runs-on: ubuntu-latest
 
     steps:
