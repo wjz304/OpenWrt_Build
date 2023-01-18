@@ -123,8 +123,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        release_name: $RELEASE_NAME
-        tag_name: ${{ env.release_tag }}
+        tag_name: ${{ env.RELEASE_NAME }}
         files: ${{ env.firmware_dir }}/*
 
     #- name: Delete workflow runs
