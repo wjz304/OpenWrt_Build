@@ -104,6 +104,7 @@ jobs:
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
         [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
         echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_ENV
+        echo "release_name=$RELEASE_NAME" >> $GITHUB_ENV
     - name: Check space usage
       if: (!cancelled())
       run: df -hT
@@ -123,7 +124,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.RELEASE_NAME }}
+        tag_name: ${{ env.release_name }}
         files: ${{ env.firmware_dir }}/*
 
     #- name: Delete workflow runs
