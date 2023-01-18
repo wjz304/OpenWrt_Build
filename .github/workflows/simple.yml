@@ -103,7 +103,7 @@ jobs:
         make -j$(nproc) V=s
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
         [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
-        echo "release_tag=$(date +"%Y.%m.%d-%H%M")-simplefirmware" >> $GITHUB_ENV
+        echo "release_tag=$(date +"%Y.%m.%d-%H%M")-SimpleFirmware" >> $GITHUB_ENV
     - name: Check space usage
       if: (!cancelled())
       run: df -hT
