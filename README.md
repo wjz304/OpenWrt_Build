@@ -20,7 +20,7 @@
 
 
 ## Preview
-![Image text](screenshot/2022.06.22-1941.jpeg)  
+![Image text](https://user-images.githubusercontent.com/5615843/217126692-7ff43adf-df84-4b3c-96f3-8bbfbf8656df.jpeg)  
 
 
 <pre>

@@ -24,15 +24,37 @@ env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
-  CONFIG_FILE: .config
   DIY_SHELL: diy.sh
-  TZ: Asia/Shanghai
-
 
 jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.set-matrix.outputs.release }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Generate build matrix
+        id: set-matrix
+        run: |
+          sudo timedatectl set-timezone "Asia/Shanghai"
+          echo "release=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_OUTPUT
+
+          # -m 所有项目以逗号分隔，并填满整行行宽
+          # -B 不列出任何以 ~ 字符结束的项目
+          # -Q 将条目名称括上双引号
+          echo "matrix={\"config\": [$(ls -mBQ *.config)]}" >> $GITHUB_OUTPUT
+
   build:
     name: Build OpenWrt
     runs-on: ubuntu-latest
+    needs: matrix
+    env:
+      release: ${{ needs.matrix.outputs.release }}
+    strategy:
+      matrix: ${{ fromJson(needs.matrix.outputs.matrix) }}
 
     steps:
     - name: Checkout
@@ -66,7 +88,20 @@ jobs:
       run: |
         df -hT $PWD
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        [ -e 040-del-rss-log.patch ] && cp 040-del-rss-log.patch openwrt/package/lean/r8125/patches/040-del-rss-log.patch
+
+        cat >> openwrt/package/lean/r8125/patches/040-del-rss-log.patch << END
+        --- a/src/r8125_rss.c
+        +++ b/src/r8125_rss.c
+        @@ -88,7 +88,7 @@ int rtl8125_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd,
+                struct rtl8125_private *tp = netdev_priv(dev);
+                int ret = -EOPNOTSUPP;
+
+        -        netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+        +        //netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+
+                if (!(dev->features & NETIF_F_RXHASH))
+                        return ret;
+        END
 
     - name: Load custom feeds
       run: |
@@ -80,7 +115,7 @@ jobs:
 
     - name: Load custom configuration
       run: |
-        [ -e $CONFIG_FILE ] && cp $CONFIG_FILE openwrt/.config
+        [ -e ${{ matrix.config }} ] && cp ${{ matrix.config }} openwrt/.config
         chmod +x $DIY_SHELL
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_SHELL
@@ -94,9 +129,10 @@ jobs:
 
     - name: Check and Push config
       run: |
-        [ -e $CONFIG_FILE ] && cp openwrt/.config $CONFIG_FILE
-        if [ -n "$(git status -s | grep $CONFIG_FILE)" ]; then
-          git add $CONFIG_FILE
+        git pull
+        [ -e ${{ matrix.config }} ] && cp openwrt/.config ${{ matrix.config }}
+        if [ -n "$(git status -s | grep ${{ matrix.config }})" ]; then
+          git add ${{ matrix.config }}
           git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
           git push -f
         fi
@@ -116,7 +152,6 @@ jobs:
 
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
         [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
-        echo "release_tag=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_ENV
 
     - name: Check space usage
       if: (!cancelled())
@@ -127,10 +162,10 @@ jobs:
       run: |
         cd openwrt/bin/targets/*/*
         ls -al
-        rm -rf packages *.buildinfo *.manifest *.bin
-        sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
-        # for i in `ls` ; do gzip $i; done
-        echo "firmware_dir=$PWD" >> $GITHUB_ENV
+        # sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
+        rm -rf packages *.buildinfo *.manifest *.bin sha256sums
+        zip -q -r ${{ matrix.config }}-${{ env.release }}.zip *
+        echo "firmware=$PWD/${{ matrix.config }}-${{ env.release }}.zip" >> $GITHUB_ENV
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
@@ -138,19 +173,19 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ env.release_tag }}
-        files: ${{ env.firmware_dir }}/*
+        tag_name: ${{ env.release }}
+        files: ${{ env.firmware }}
 
-    #- name: Delete workflow runs
-    #  uses: Mattraks/delete-workflow-runs@v2
-    #  with:
-    #    retain_days: 1
-    #    keep_minimum_runs: 9
-
-    - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.1.0
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@v2
       with:
-        keep_latest: 9
-        delete_tags: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        retain_days: 1
+        keep_minimum_runs: 9
+
+    # - name: Remove old Releases
+    #   uses: dev-drprasad/delete-older-releases@v0.1.0
+    #   with:
+    #     keep_latest: 9
+    #     delete_tags: true
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
