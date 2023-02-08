@@ -113,19 +113,14 @@ jobs:
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
-    - name: Load custom configuration
-      run: |
-        [ -e ${{ matrix.config }} ] && cp ${{ matrix.config }} openwrt/.config
-        chmod +x $DIY_SHELL
-        cd openwrt
-        $GITHUB_WORKSPACE/$DIY_SHELL
-
     - name: Make config
       run: |
+        # $GITHUB_WORKSPACE == ${{ github.workspace }}
         cd openwrt
+        [ -e $GITHUB_WORKSPACE/${{ matrix.config }} ] && cp $GITHUB_WORKSPACE/${{ matrix.config }} ./.config
+        [ -e $GITHUB_WORKSPACE/$DIY_SHELL] && chmod +x $GITHUB_WORKSPACE/$DIY_SHELL && $GITHUB_WORKSPACE/$DIY_SHELL
 
         make defconfig
-        cat .config
 
     - name: Check and Push config
       run: |
@@ -153,23 +148,25 @@ jobs:
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
         [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
 
-    - name: Check space usage
-      if: (!cancelled())
-      run: df -hT
-
     - name: Organize files
-      if: (!cancelled())
+      if: success() && !cancelled()
       run: |
+        df -hT
         cd openwrt/bin/targets/*/*
         ls -al
+
         # sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
         rm -rf packages *.buildinfo *.manifest *.bin sha256sums
-        zip -q -r ${{ matrix.config }}-${{ env.release }}.zip *
-        echo "firmware=$PWD/${{ matrix.config }}-${{ env.release }}.zip" >> $GITHUB_ENV
+
+        config=${{ matrix.config }}
+        filename=${config/.config/}-${{ env.release }}.zip
+
+        zip -q -r ${filename} *
+        echo "firmware=$PWD/${filename}" >> $GITHUB_ENV
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
-      if: (!cancelled())
+      if: success() && !cancelled()
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
