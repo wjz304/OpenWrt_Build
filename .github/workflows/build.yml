@@ -118,7 +118,7 @@ jobs:
         # $GITHUB_WORKSPACE == ${{ github.workspace }}
         cd openwrt
         [ -e $GITHUB_WORKSPACE/${{ matrix.config }} ] && cp $GITHUB_WORKSPACE/${{ matrix.config }} ./.config
-        [ -e $GITHUB_WORKSPACE/$DIY_SHELL] && chmod +x $GITHUB_WORKSPACE/$DIY_SHELL && $GITHUB_WORKSPACE/$DIY_SHELL
+        [ -e $GITHUB_WORKSPACE/$DIY_SHELL ] && chmod +x $GITHUB_WORKSPACE/$DIY_SHELL && $GITHUB_WORKSPACE/$DIY_SHELL
 
         make defconfig
 

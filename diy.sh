@@ -12,7 +12,7 @@
 # Description: OpenWrt DIY script
 #====================================================================
 
-
+echo "OpenWrt DIY script"
 
 # uninstall duplicate packages
 #./scripts/feeds uninstall luci-theme-argon
