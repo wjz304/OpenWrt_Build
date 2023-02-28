@@ -23,7 +23,6 @@ on:
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
-  FEEDS_CONF: feeds.conf.default
   DIY_SHELL: diy.sh
 
 jobs:
@@ -46,6 +45,52 @@ jobs:
           # -B 不列出任何以 ~ 字符结束的项目
           # -Q 将条目名称括上双引号
           echo "matrix={\"config\": [$(ls -mBQ *.config)]}" >> $GITHUB_OUTPUT
+
+      # Check dl cache
+      - name: Cache downloads
+        id: op-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/openwrt
+          key: ${{ steps.set-matrix.outputs.release }}
+
+      - name: Openwrt Workspace
+        if: steps.op-cache.outputs.cache-hit != 'true'
+        run: |
+          cd ~
+          git clone $REPO_URL -b $REPO_BRANCH openwrt
+
+          cat >> openwrt/package/lean/r8125/patches/040-del-rss-log.patch << END
+          --- a/src/r8125_rss.c
+          +++ b/src/r8125_rss.c
+          @@ -88,7 +88,7 @@ int rtl8125_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd,
+                  struct rtl8125_private *tp = netdev_priv(dev);
+                  int ret = -EOPNOTSUPP;
+
+          -        netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+          +        //netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+
+                  if (!(dev->features & NETIF_F_RXHASH))
+                          return ret;
+          END
+
+          cd openwrt 
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+          echo ''                                        >> .config 
+          echo 'CONFIG_TARGET_x86=y'                     >> .config 
+          echo 'CONFIG_TARGET_x86_64=y'                  >> .config
+          echo 'CONFIG_TARGET_x86_64_DEVICE_generic=y'   >> .config
+          echo 'CONFIG_TARGET_BOARD="x86"''              >> .config
+          echo 'CONFIG_TARGET_SUBTARGET="64"''           >> .config
+          echo 'CONFIG_TARGET_PROFILE="DEVICE_generic"'  >> .config
+          echo 'CONFIG_TARGET_ARCH_PACKAGES="x86_64"'    >> .config
+
+          make defconfig
+
+          make download -j8 V=s
+          make -j$(nproc) V=s
 
   build:
     name: Build OpenWrt
@@ -84,9 +129,19 @@ jobs:
         sudo -E apt -y autoremove --purge
         sudo -E apt clean
 
+    # Check dl cache
+    - name: Cache downloads
+      id: op-cache
+      uses: actions/cache@v3
+      with:
+        path: ~/openwrt
+        key: ${{ env.release }}
+
     - name: Clone source code
+      if: steps.op-cache.outputs.cache-hit != 'true'
       run: |
         df -hT $PWD
+        cd ~
         git clone $REPO_URL -b $REPO_BRANCH openwrt
 
         cat >> openwrt/package/lean/r8125/patches/040-del-rss-log.patch << END
@@ -103,20 +158,20 @@ jobs:
                         return ret;
         END
 
-    - name: Load custom feeds
+    - name: Custom feeds
       run: |
-        [ -e $FEEDS_CONF ] && cp $FEEDS_CONF openwrt/feeds.conf.default
+        echo "src-git ing https://github.com/wjz304/openwrt-packages" >> ~/openwrt/feeds.conf.default
 
     - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
+      run: cd ~/openwrt && ./scripts/feeds update -a
 
     - name: Install feeds
-      run: cd openwrt && ./scripts/feeds install -a
+      run: cd ~/openwrt && ./scripts/feeds install -a
 
     - name: Make config
       run: |
         # $GITHUB_WORKSPACE == ${{ github.workspace }}
-        cd openwrt
+        cd ~/openwrt
         [ -e $GITHUB_WORKSPACE/${{ matrix.config }} ] && cp $GITHUB_WORKSPACE/${{ matrix.config }} ./.config
         [ -e $GITHUB_WORKSPACE/$DIY_SHELL ] && chmod +x $GITHUB_WORKSPACE/$DIY_SHELL && $GITHUB_WORKSPACE/$DIY_SHELL
 
@@ -125,7 +180,7 @@ jobs:
     - name: Check and Push config
       run: |
         git pull
-        [ -e ${{ matrix.config }} ] && cp openwrt/.config ${{ matrix.config }}
+        [ -e ${{ matrix.config }} ] && cp ~/openwrt/.config ${{ matrix.config }}
         if [ -n "$(git status -s | grep ${{ matrix.config }})" ]; then
           git add ${{ matrix.config }}
           git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
@@ -134,7 +189,7 @@ jobs:
 
     - name: Compile the firmware
       run: |
-        cd openwrt
+        cd ~/openwrt
 
         echo -e "download package"
         make download -j8 V=s
@@ -152,7 +207,7 @@ jobs:
       if: success() && !cancelled()
       run: |
         df -hT
-        cd openwrt/bin/targets/*/*
+        cd ~/openwrt/bin/targets/*/*
         ls -al
 
         # sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
