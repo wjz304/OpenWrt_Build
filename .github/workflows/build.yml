@@ -184,7 +184,7 @@ jobs:
 
     - name: Custom feeds
       run: |
-        echo "src-git ing https://github.com/wjz304/openwrt-packages" >> ~/openwrt/feeds.conf.default
+        sed -i '1 i src-git ing https://github.com/wjz304/openwrt-packages' ~/openwrt/feeds.conf.default
 
     - name: Update feeds
       run: cd ~/openwrt && ./scripts/feeds update -a
