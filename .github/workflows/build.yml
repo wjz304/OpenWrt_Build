@@ -18,11 +18,7 @@ on:
     - cron: '0 0 1/2 * *'
 
   workflow_dispatch:
-    inputs:
-      force: 
-        description: 'force'
-        default: false
-        type: boolean
+
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
@@ -38,25 +34,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
-        
-      - name: Init Env
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-
-          docker rmi `docker images -q`
-          sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
-          sudo -E apt-mark hold grub-efi-amd64-signed
-          sudo -E apt update
-          sudo -E apt -y purge azure-cli* docker* ghc* zulu* llvm* firefox google* dotnet* powershell* openjdk* mysql* php* mongodb* dotnet* moby* snap*
-          sudo -E apt -y full-upgrade
-          sudo -E apt -y install ack antlr3 aria2 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
-          sudo -E systemctl daemon-reload
-          sudo -E apt -y autoremove --purge
-          sudo -E apt clean
-          sudo -E timedatectl set-timezone "Asia/Shanghai"
 
       - name: Generate build matrix
         id: set-matrix
@@ -68,57 +45,6 @@ jobs:
           # -B 不列出任何以 ~ 字符结束的项目
           # -Q 将条目名称括上双引号
           echo "matrix={\"config\": [$(ls -mBQ *.config)]}" >> $GITHUB_OUTPUT
-
-      # Check dl cache
-      - name: Cache downloads
-        if: inputs.force == false
-        id: op-cache
-        uses: actions/cache@v3
-        with:
-          path: ~/openwrt
-          key: lede
-
-      - name: Openwrt Workspace
-        if: inputs.force == false
-        run: |
-          if [ '${{ steps.op-cache.outputs.cache-hit }}' != 'true' ]; then
-            git clone $REPO_URL -b $REPO_BRANCH ~/openwrt
-          else
-            cd ~/openwrt; git pull
-          fi
-
-          cd ~/openwrt 
-          cat >> ./package/lean/r8125/patches/040-del-rss-log.patch << END
-          --- a/src/r8125_rss.c
-          +++ b/src/r8125_rss.c
-          @@ -88,7 +88,7 @@ int rtl8125_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd,
-                  struct rtl8125_private *tp = netdev_priv(dev);
-                  int ret = -EOPNOTSUPP;
-
-          -        netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
-          +        //netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
-
-                  if (!(dev->features & NETIF_F_RXHASH))
-                          return ret;
-          END
-
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-
-          echo ''                                        > .config 
-          echo 'CONFIG_TARGET_x86=y'                     >> .config 
-          echo 'CONFIG_TARGET_x86_64=y'                  >> .config
-          echo 'CONFIG_TARGET_x86_64_DEVICE_generic=y'   >> .config
-          echo 'CONFIG_TARGET_BOARD="x86"'               >> .config
-          echo 'CONFIG_TARGET_SUBTARGET="64"'            >> .config
-          echo 'CONFIG_TARGET_PROFILE="DEVICE_generic"'  >> .config
-          echo 'CONFIG_TARGET_ARCH_PACKAGES="x86_64"'    >> .config
-
-          make defconfig
-
-          make download -j8 V=s
-          make -j$(nproc) V=s
-
 
   build:
     name: Build OpenWrt
@@ -152,17 +78,7 @@ jobs:
         sudo -E apt clean
         sudo -E timedatectl set-timezone "Asia/Shanghai"
 
-    # Check dl cache
-    - name: Cache downloads
-      if: inputs.force == false
-      id: op-cache
-      uses: actions/cache/restore@v3
-      with:
-        path: ~/openwrt
-        key: lede
-
     - name: Clone source code
-      if: inputs.force == true || steps.op-cache.outputs.cache-hit != 'true'
       run: |
         df -hT $PWD
         cd ~
@@ -195,7 +111,6 @@ jobs:
       run: |
         cd ~/openwrt
         ./scripts/feeds install -a
-        ./scripts/feeds install -a -f -p ing
 
     - name: Make config
       run: |
