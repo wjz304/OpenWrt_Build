@@ -16,9 +16,13 @@ name: Build OpenWrt
 on:
   schedule:
     - cron: '0 0 1/2 * *'
-  repository_dispatch:
-  workflow_dispatch:
 
+  workflow_dispatch:
+    inputs:
+      force: 
+        description: 'force'
+        default: false
+        type: boolean
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
@@ -72,19 +76,24 @@ jobs:
 
       # Check dl cache
       - name: Cache downloads
+        if: inputs.force == false
         id: op-cache
         uses: actions/cache@v3
         with:
           path: ~/openwrt
-          key: ${{ steps.set-matrix.outputs.release }}
+          key: lede
 
       - name: Openwrt Workspace
-        if: steps.op-cache.outputs.cache-hit != 'true'
+        if: inputs.force == false
         run: |
-          cd ~
-          git clone $REPO_URL -b $REPO_BRANCH openwrt
+          if [ '${{ steps.op-cache.outputs.cache-hit }}' != 'true' ]; then
+            git clone $REPO_URL -b $REPO_BRANCH ~/openwrt
+          else
+            cd ~/openwrt; git pull
+          fi
 
-          cat >> openwrt/package/lean/r8125/patches/040-del-rss-log.patch << END
+          cd ~/openwrt 
+          cat >> ./package/lean/r8125/patches/040-del-rss-log.patch << END
           --- a/src/r8125_rss.c
           +++ b/src/r8125_rss.c
           @@ -88,7 +88,7 @@ int rtl8125_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd,
@@ -98,7 +107,6 @@ jobs:
                           return ret;
           END
 
-          cd openwrt 
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
@@ -115,6 +123,7 @@ jobs:
 
           make download -j8 V=s
           make -j$(nproc) V=s
+
 
   build:
     name: Build OpenWrt
@@ -155,14 +164,15 @@ jobs:
 
     # Check dl cache
     - name: Cache downloads
+      if: inputs.force == false
       id: op-cache
       uses: actions/cache@v3
       with:
         path: ~/openwrt
-        key: ${{ env.release }}
+        key: lede
 
     - name: Clone source code
-      if: steps.op-cache.outputs.cache-hit != 'true'
+      if: inputs.force == true || steps.op-cache.outputs.cache-hit != 'true'
       run: |
         df -hT $PWD
         cd ~
@@ -187,10 +197,15 @@ jobs:
         sed -i '1 i src-git ing https://github.com/wjz304/openwrt-packages' ~/openwrt/feeds.conf.default
 
     - name: Update feeds
-      run: cd ~/openwrt && ./scripts/feeds update -a
+      run: |
+        cd ~/openwrt 
+        ./scripts/feeds update -a
 
     - name: Install feeds
-      run: cd ~/openwrt && ./scripts/feeds install -a
+      run: |
+        cd ~/openwrt
+        ./scripts/feeds install -a
+        ./scripts/feeds install -a -f -p ing
 
     - name: Make config
       run: |
