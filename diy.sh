@@ -14,19 +14,13 @@
 
 echo "OpenWrt DIY script"
 
-# uninstall duplicate packages
-#./scripts/feeds uninstall luci-theme-argon
-#./scripts/feeds uninstall luci-app-netdata
-#./scripts/feeds uninstall luci-app-smartdns
-#./scripts/feeds uninstall luci-app-pushbot
-
-# install the new version in the ing source
-#./scripts/feeds install -a -f -p ing
-
 
 # Modify default IP
 sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
 
+
+# Remvoe openwrt_ing
+sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing\/d" \/etc\/opkg\/distfeeds.conf' package/lean/default-settings/files/zzz-default-settings
 
 # Modify password to Null
 #sed -i '/CYXluq4wUazHjmCDBCqXF/d' package/lean/default-settings/files/zzz-default-settings

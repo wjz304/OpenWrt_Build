@@ -112,6 +112,9 @@ jobs:
         cd ~/openwrt
         ./scripts/feeds install -a
 
+        #./scripts/feeds uninstall `grep Package ./feeds/ing.index | awk -F': ' '{print $2}'`
+        #./scripts/feeds install -p ing -a
+
     - name: Make config
       run: |
         # $GITHUB_WORKSPACE == ${{ github.workspace }}
