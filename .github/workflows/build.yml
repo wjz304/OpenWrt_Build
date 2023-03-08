@@ -163,6 +163,7 @@ jobs:
         config=${{ matrix.config }}
         filename=${config/.config/}-${{ env.release }}.zip
 
+        gzip *.img
         zip -q -r ${filename} *
         echo "firmware=$PWD/${filename}" >> $GITHUB_ENV
 
