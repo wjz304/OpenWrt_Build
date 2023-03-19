@@ -16,14 +16,8 @@ name: Build OpenWrt
 on:
   schedule:
     - cron: '0 0 1/2 * *'
-
   workflow_dispatch:
 
-
-env:
-  REPO_URL: https://github.com/coolsnowwolf/lede
-  REPO_BRANCH: master
-  DIY_SHELL: diy.sh
 
 jobs:
   matrix:
@@ -44,13 +38,15 @@ jobs:
           # -m 所有项目以逗号分隔，并填满整行行宽
           # -B 不列出任何以 ~ 字符结束的项目
           # -Q 将条目名称括上双引号
-          echo "matrix={\"config\": [$(ls -mBQ *.config)]}" >> $GITHUB_OUTPUT
+
+          echo "matrix={ \"config\": [ `echo $(ls -mBQ *.config)` ] }" >> $GITHUB_OUTPUT
 
   build:
     name: Build OpenWrt
     runs-on: ubuntu-latest
     needs: matrix
     env:
+      diyscript: diy.sh
       release: ${{ needs.matrix.outputs.release }}
     strategy:
       matrix: ${{ fromJson(needs.matrix.outputs.matrix) }}
@@ -59,6 +55,32 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
       
+    - name: get config
+      run: |
+        # config 命名规则: <repo>;<name>.config
+
+        config="${{ matrix.config }}"
+        config=${config/.config/}            # 去掉 .config 后缀
+        array=(${config//;/ })               # ;号分割
+        
+        if [ ${#array[@]} -ne 2 ]; then
+          echo "${{ matrix.config }} name error!"
+          exit 1
+        fi
+
+        echo "CONFIG_REPO=${array[0]}" >> $GITHUB_ENV
+        echo "CONFIG_NAME=${array[1]}" >> $GITHUB_ENV
+
+        if [ "${array[0]}" == "openwrt" ]; then
+          echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
+          echo "REPO_BRANCH=master" >> $GITHUB_ENV
+        fi
+
+        if [ "${array[0]}" == "lede" ]; then
+          echo "REPO_URL=https://github.com/coolsnowwolf/lede" >> $GITHUB_ENV
+          echo "REPO_BRANCH=master" >> $GITHUB_ENV
+        fi
+
     - name: Init Env
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -82,54 +104,51 @@ jobs:
       run: |
         df -hT $PWD
         cd ~
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
 
-        cat >> openwrt/package/lean/r8125/patches/040-del-rss-log.patch << END
-        --- a/src/r8125_rss.c
-        +++ b/src/r8125_rss.c
-        @@ -88,7 +88,7 @@ int rtl8125_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd,
-                struct rtl8125_private *tp = netdev_priv(dev);
-                int ret = -EOPNOTSUPP;
+        git clone ${{ env.REPO_URL }} -b ${{ env.REPO_BRANCH}} openwrt
 
-        -        netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
-        +        //netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+        # cat >> openwrt/package/lean/r8125/patches/040-del-rss-log.patch << END
+        # --- a/src/r8125_rss.c
+        # +++ b/src/r8125_rss.c
+        # @@ -88,7 +88,7 @@ int rtl8125_get_rxnfc(struct net_device *dev, struct ethtool_rxnfc *cmd,
+        #         struct rtl8125_private *tp = netdev_priv(dev);
+        #         int ret = -EOPNOTSUPP;
+        # 
+        # -        netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+        # +        //netif_info(tp, drv, tp->dev, "rss get rxnfc\n");
+        # 
+        #         if (!(dev->features & NETIF_F_RXHASH))
+        #                 return ret;
+        # END
 
-                if (!(dev->features & NETIF_F_RXHASH))
-                        return ret;
-        END
-
-    - name: Custom feeds
-      run: |
-        sed -i '1 i src-git ing https://github.com/wjz304/openwrt-packages' ~/openwrt/feeds.conf.default
-
-    - name: Update feeds
+    - name: feeds
       run: |
         cd ~/openwrt 
+        sed -i '1 i src-git ing https://github.com/wjz304/openwrt-packages;${{ env.CONFIG_REPO }}' feeds.conf.default
+
         ./scripts/feeds update -a
 
-    - name: Install feeds
-      run: |
-        cd ~/openwrt
         ./scripts/feeds install -a
 
-        #./scripts/feeds uninstall `grep Package ./feeds/ing.index | awk -F': ' '{print $2}'`
-        #./scripts/feeds install -p ing -a
+        ./scripts/feeds uninstall `grep Package ./feeds/ing.index | awk -F': ' '{print $2}'`
+        ./scripts/feeds install -p ing -a
 
     - name: Make config
       run: |
         # $GITHUB_WORKSPACE == ${{ github.workspace }}
         cd ~/openwrt
-        [ -e $GITHUB_WORKSPACE/${{ matrix.config }} ] && cp $GITHUB_WORKSPACE/${{ matrix.config }} ./.config
-        [ -e $GITHUB_WORKSPACE/$DIY_SHELL ] && chmod +x $GITHUB_WORKSPACE/$DIY_SHELL && $GITHUB_WORKSPACE/$DIY_SHELL
+        [ -e "$GITHUB_WORKSPACE/${{ matrix.config }}" ] && cp "$GITHUB_WORKSPACE/${{ matrix.config }}" "./.config"
+        [ -e "$GITHUB_WORKSPACE/${{ env.diyscript }}" ] && chmod +x "$GITHUB_WORKSPACE/${{ env.diyscript }}" && "$GITHUB_WORKSPACE/${{ env.diyscript }}"
 
         make defconfig
 
     - name: Check and Push config
       run: |
         git pull
-        [ -e ${{ matrix.config }} ] && cp ~/openwrt/.config ${{ matrix.config }}
-        if [ -n "$(git status -s | grep ${{ matrix.config }})" ]; then
-          git add ${{ matrix.config }}
+        [ -e "${{ matrix.config }}" ] && cp ~/openwrt/.config "${{ matrix.config }}"
+        status=$(git status -s | grep "${{ matrix.config }}" | awk '{printf " %s", $2}')
+        if [ -n "${status}" ]; then
+          git add "${status}"
           git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
           git push -f
         fi
@@ -160,8 +179,7 @@ jobs:
         # sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
         rm -rf packages *.buildinfo *.manifest *.bin sha256sums
 
-        config=${{ matrix.config }}
-        filename=${config/.config/}-${{ env.release }}.zip
+        filename=${{ env.CONFIG_NAME }}-${{ env.release }}.zip
 
         gzip *.img
         zip -q -r ${filename} *
