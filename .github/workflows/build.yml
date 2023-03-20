@@ -146,7 +146,7 @@ jobs:
       run: |
         git pull
         [ -e "${{ matrix.config }}" ] && cp ~/openwrt/.config "${{ matrix.config }}"
-        status=$(git status -s | grep "${{ matrix.config }}" | awk '{printf " %s", $2}')
+        status=$(git status -s | grep "${{ matrix.config }}" | awk '{printf $2}')
         if [ -n "${status}" ]; then
           git add "${status}"
           git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
@@ -179,7 +179,7 @@ jobs:
         # sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
         rm -rf packages *.buildinfo *.manifest *.bin sha256sums
 
-        filename=${{ env.CONFIG_NAME }}-${{ env.release }}.zip
+        filename=${{ env.CONFIG_REPO }}-${{ env.CONFIG_NAME }}-${{ env.release }}.zip
 
         gzip *.img
         zip -q -r ${filename} *
