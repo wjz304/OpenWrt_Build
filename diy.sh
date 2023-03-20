@@ -18,16 +18,75 @@ echo "OpenWrt DIY script"
 # Modify default IP
 sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
 
-
-# Remvoe openwrt_ing
-sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing\/d" \/etc\/opkg\/distfeeds.conf' package/lean/default-settings/files/zzz-default-settings
-
-# Modify password to Null
-#sed -i '/CYXluq4wUazHjmCDBCqXF/d' package/lean/default-settings/files/zzz-default-settings
-
-
 # Modify hostname
 #sed -i 's/OpenWrt/OpenWrting/g' package/base-files/files/bin/config_generate
+
+# Modify timezone
+#sed -i "s/'UTC'/'CST-8'\n        set system.@system[-1].zonename='Asia\/Shanghai'/g" package/base-files/files/bin/config_generate
+
+
+
+# Modify banner
+if [ "{1:-openwrt}" == "openwrt" ]; then
+cat > package/base-files/files/etc/banner << EOF
+  _______                     ________        __
+ |       |.-----.-----.-----.|  |  |  |.----.|  |_
+ |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
+ |_______||   __|_____|__|__||________||__|  |____|
+          |__|                      Openwrt By Ing 
+ -----------------------------------------------------
+ %D %V, %C
+ -----------------------------------------------------
+
+EOF
+else
+cat > package/base-files/files/etc/banner << EOF
+     _________
+    /        /\      _    ___ ___  ___
+   /  LE    /  \    | |  | __|   \| __|
+  /    DE  /    \   | |__| _|| |) | _|
+ /________/  LE  \  |____|___|___/|___|           Lede By Ing 
+ \        \   DE /
+  \    LE  \    /  -------------------------------------------
+   \  DE    \  /    %D %V, %C
+    \________\/    -------------------------------------------
+
+EOF
+fi
+
+
+
+# lede    ==> ${defaultsettings}
+# openwrt ==> feeds/ing/default-settings
+defaultsettings=*/*/default-settings
+[ "{1:-openwrt}" == "openwrt" ] && language=zh_cn || language=zh_Hans
+
+# Set default language
+#sed -i "s/en/${language}/g" ${defaultsettings}/files/zzz-default-settings
+#sed -i "s/en/${language}/g" package/luci/modules/luci-base/root/etc/uci-defaults/luci-base
+#sed -i "s/+@LUCI_LANG_en/+@LUCI_LANG_${language}/g" ${defaultsettings}/Makefile
+
+# Modify password to Null
+#sed -i '/CYXluq4wUazHjmCDBCqXF/d' ${defaultsettings}/files/zzz-default-settings
+
+# Modify the version number
+sed -i "s/OpenWrt /Ing build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" ${defaultsettings}/files/zzz-default-settings
+
+# Remvoe openwrt_ing
+sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing\/d" \/etc\/opkg\/distfeeds.conf' ${defaultsettings}/files/zzz-default-settings
+
+# Modify network setting
+#sed -i '$i uci set network.lan.ifname="eth1 eth2 eth3"' ${defaultsettings}/files/zzz-default-settings
+#sed -i '$i uci set network.wan.ifname="eth0"' ${defaultsettings}/files/zzz-default-settings
+#sed -i '$i uci set network.wan.proto=pppoe' ${defaultsettings}/files/zzz-default-settings
+#sed -i '$i uci set network.wan6.ifname="eth0"' ${defaultsettings}/files/zzz-default-settings
+#sed -i '$i uci commit network' ${defaultsettings}/files/zzz-default-settings
+
+# Modify Default PPPOE Setting
+#sed -i '$i uci set network.wan.username=PPPOE_USERNAME' ${defaultsettings}/files/zzz-default-settings
+#sed -i '$i uci set network.wan.password=PPPOE_PASSWD' ${defaultsettings}/files/zzz-default-settings
+#sed -i '$i uci commit network' ${defaultsettings}/files/zzz-default-settings
+
 
 
 # Modify ssid
@@ -38,20 +97,10 @@ sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing
 #sed -i 's/mu_beamformer=0/mu_beamformer=1/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
 
+
 # Modify kernel version
 #sed -i 's/KERNEL_PATCHVER:=5.15/KERNEL_PATCHVER:=5.4/g' ./target/linux/x86/Makefile
 
-
-# Modify the version number
-sed -i "s/OpenWrt /Ing build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" package/lean/default-settings/files/zzz-default-settings
-
-
-# Modify network setting
-#sed -i '$i uci set network.lan.ifname="eth1 eth2 eth3"' package/lean/default-settings/files/zzz-default-settings
-#sed -i '$i uci set network.wan.ifname="eth0"' package/lean/default-settings/files/zzz-default-settings
-#sed -i '$i uci set network.wan.proto=pppoe' package/lean/default-settings/files/zzz-default-settings
-#sed -i '$i uci set network.wan6.ifname="eth0"' package/lean/default-settings/files/zzz-default-settings
-#sed -i '$i uci commit network' package/lean/default-settings/files/zzz-default-settings
 
 
 # Modify default theme
@@ -59,14 +108,10 @@ sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/M
 sed -i 's/bootstrap/argon/g' feeds/luci/modules/luci-base/root/etc/config/luci
 
 
+
 # Modify maximum connections
 sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' package/base-files/files/etc/sysctl.conf
 
-
-# Set default language
-#sed -i "s/en/zh_cn/g" package/lean/default-settings/files/zzz-default-settings
-#sed -i "s/en/zh_cn/g" luci/modules/luci-base/root/etc/uci-defaults/luci-base
-#sed -i "s/+@LUCI_LANG_en/+@LUCI_LANG_zh-cn/g" package/lean/default-settings/Makefile
 
 
 # Add kernel build user
@@ -79,15 +124,11 @@ sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' packag
     echo 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >>.config ||
     sed -i 's@\(CONFIG_KERNEL_BUILD_DOMAIN=\).*@\1$"GitHub Actions"@' .config
 
-
 # Modify kernel and rootfs size
 #sed -i 's/CONFIG_TARGET_KERNEL_PARTSIZE=.*$/CONFIG_TARGET_KERNEL_PARTSIZE=64/' .config
 #sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=.*$/CONFIG_TARGET_ROOTFS_PARTSIZE=1024/' .config
 
-# Modify Default PPPOE Setting
-#sed -i '$i uci set network.wan.username=PPPOE_USERNAME' package/*/*/my-default-settings/files/etc/uci-defaults/95-default-settings
-#sed -i '$i uci set network.wan.password=PPPOE_PASSWD' package/*/*/my-default-settings/files/etc/uci-defaults/95-default-settings
-#sed -i '$i uci commit network' package/*/*/my-default-settings/files/etc/uci-defaults/95-default-settings
+
 
 # Modify app list
 sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/luci/luci-app-ipsec-server/luasrc/controller/ipsec-server.lua    # `grep "IPSec VPN Server" -rl ./`
@@ -104,12 +145,6 @@ sed -i 's/"实时流量监测"/"监测"/g' package/feeds/luci/luci-app-wrtbwmon/
 sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argon-config/po/zh-cn/argon-config.po    # `grep "Argon 主题设置" -rl ./`
 
 
-# build po2lmo
-if [ -d "feeds/ing/luci-app-openclash/tools/po2lmo" ]; then
-    pushd feeds/ing/luci-app-openclash/tools/po2lmo
-    make && sudo make install
-    popd
-fi
 
 # Info
 # luci-app-netdata 1.33.1汉化版 导致 web升级后 报错: /usr/lib/lua/luci/dispatcher.lua:220: /etc/config/luci seems to be corrupt, unable to find section 'main'
