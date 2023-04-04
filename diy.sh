@@ -12,8 +12,13 @@
 # Description: OpenWrt DIY script
 #====================================================================
 
+repo=${1:-openwrt}
+owner=${2:-Ing}
+kver=${3:-5.15}
+
 echo "OpenWrt DIY script"
 
+echo "repo: ${repo}; owner: ${owner}; kver: ${kver};" 
 
 # Modify default IP
 sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
@@ -27,13 +32,14 @@ sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generat
 
 
 # Modify banner
-if [ "{1:-openwrt}" == "openwrt" ]; then
+if [ "${owner}" == "Ing" ]; then
+if [ "${repo}" == "openwrt" ]; then
 cat > package/base-files/files/etc/banner << EOF
   _______                     ________        __
  |       |.-----.-----.-----.|  |  |  |.----.|  |_
  |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
  |_______||   __|_____|__|__||________||__|  |____|
-          |__|                      Openwrt By Ing 
+          |__|                   Openwrt By ${owner} 
  -----------------------------------------------------
  %D %V, %C
  -----------------------------------------------------
@@ -45,7 +51,7 @@ cat > package/base-files/files/etc/banner << EOF
     /        /\      _    ___ ___  ___
    /  LE    /  \    | |  | __|   \| __|
   /    DE  /    \   | |__| _|| |) | _|
- /________/  LE  \  |____|___|___/|___|           Lede By Ing 
+ /________/  LE  \  |____|___|___/|___|        Lede By ${owner}  
  \        \   DE /
   \    LE  \    /  -------------------------------------------
    \  DE    \  /    %D %V, %C
@@ -53,13 +59,25 @@ cat > package/base-files/files/etc/banner << EOF
 
 EOF
 fi
-
+else
+cat > package/base-files/files/etc/banner << EOF
+ ██████╗ ██████╗ ███████╗███╗   ██╗██╗    ██╗██████╗ ████████╗
+██╔═══██╗██╔══██╗██╔════╝████╗  ██║██║    ██║██╔══██╗╚══██╔══╝
+██║   ██║██████╔╝█████╗  ██╔██╗ ██║██║ █╗ ██║██████╔╝   ██║   
+██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║██║███╗██║██╔══██╗   ██║   
+╚██████╔╝██║     ███████╗██║ ╚████║╚███╔███╔╝██║  ██║   ██║   
+ ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝ ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   
+  -------------------------------------------
+  		%D %V, %C      By ${owner} 
+  -------------------------------------------
+EOF
+fi
 
 
 # lede    ==> ${defaultsettings}
 # openwrt ==> feeds/ing/default-settings
 defaultsettings=*/*/default-settings
-[ "{1:-openwrt}" == "openwrt" ] && language=zh_cn || language=zh_Hans
+[ "${repo}" == "openwrt" ] && language=zh_cn || language=zh_Hans
 
 # Set default language
 #sed -i "s/en/${language}/g" ${defaultsettings}/files/zzz-default-settings
@@ -104,9 +122,15 @@ sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing
 
 
 # Modify default theme
+if [ "${owner}" == "Ing" ]; then
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 sed -i 's/bootstrap/argon/g' feeds/luci/modules/luci-base/root/etc/config/luci
-
+elif [ "${owner}" == "Lyc" ]; then
+sed -i 's/luci-theme-bootstrap/luci-theme-pink/g' feeds/luci/collections/luci/Makefile
+sed -i 's/bootstrap/pink/g' feeds/luci/modules/luci-base/root/etc/config/luci
+else
+  echo "default luci-theme-bootstrap"
+fi
 
 
 # Modify maximum connections
