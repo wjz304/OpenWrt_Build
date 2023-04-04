@@ -105,10 +105,15 @@ jobs:
         df -hT $PWD
         cd ~
 
-        git clone ${{ env.REPO_URL }} -b ${{ env.REPO_BRANCH}} openwrt
+        git clone ${{ env.REPO_URL }} -b ${{ env.REPO_BRANCH }} openwrt
 
         if [ -d "openwrt/package/lean/r8125" ]; then
           rm -rf openwrt/package/lean/r8125
+        fi
+
+        CONFIG_NAME=${{ env.CONFIG_NAME }}
+        if [ "6.1" == "${CONFIG_NAME: -3}" ]; then
+          [ -z "`grep 'kmod-fs-efivarfs' openwrt/package/kernel/mac80211/intel.mk`" ] && sed -i 's/+kmod-mac80211/& +LINUX_6_1:kmod-fs-efivarfs/' openwrt/package/kernel/mac80211/intel.mk
         fi
 
     - name: feeds
