@@ -128,7 +128,7 @@ sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' packag
 
 # Modify default theme
 deftheme=bootstrap
-if [ "${owner}" == "Ing" ]; then
+if [ "${owner}" == "Ing" -o "${owner}" == "OldWang" ]; then
   deftheme=argon
 elif [ "${owner}" == "Lyc" ]; then
   deftheme=pink
