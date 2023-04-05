@@ -121,32 +121,33 @@ sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing
 
 
 
-# Modify default theme
-if [ "${owner}" == "Ing" ]; then
-sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
-sed -i 's/bootstrap/argon/g' feeds/luci/modules/luci-base/root/etc/config/luci
-elif [ "${owner}" == "Lyc" ]; then
-sed -i 's/luci-theme-bootstrap/luci-theme-pink/g' feeds/luci/collections/luci/Makefile
-sed -i 's/bootstrap/pink/g' feeds/luci/modules/luci-base/root/etc/config/luci
-else
-  echo "default luci-theme-bootstrap"
-fi
-
-
 # Modify maximum connections
 sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' package/base-files/files/etc/sysctl.conf
 
 
 
+# Modify default theme
+deftheme=bootstrap
+if [ "${owner}" == "Ing" ]; then
+  deftheme=argon
+elif [ "${owner}" == "Lyc" ]; then
+  deftheme=pink
+fi
+echo deftheme: ${deftheme}
+sed -i "s/bootstrap/${deftheme}/g" feeds/luci/collections/luci/Makefile
+sed -i "s/bootstrap/${deftheme}/g" feeds/luci/modules/luci-base/root/etc/config/luci
+
+
 # Add kernel build user
 [ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
-    echo 'CONFIG_KERNEL_BUILD_USER="Ing"' >>.config ||
-    sed -i 's@\(CONFIG_KERNEL_BUILD_USER=\).*@\1$"Ing"@' .config
+    echo 'CONFIG_KERNEL_BUILD_USER="${owner}"' >>.config ||
+    sed -i "s|\(CONFIG_KERNEL_BUILD_USER=\).*|\1$\"${owner}\"|" .config
 
 # Add kernel build domain
 [ -z $(grep "CONFIG_KERNEL_BUILD_DOMAIN=" .config) ] &&
     echo 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >>.config ||
-    sed -i 's@\(CONFIG_KERNEL_BUILD_DOMAIN=\).*@\1$"GitHub Actions"@' .config
+    sed -i 's|\(CONFIG_KERNEL_BUILD_DOMAIN=\).*|\1$"GitHub Actions"|' .config
+
 
 # Modify kernel and rootfs size
 #sed -i 's/CONFIG_TARGET_KERNEL_PARTSIZE=.*$/CONFIG_TARGET_KERNEL_PARTSIZE=64/' .config
