@@ -1,15 +1,9 @@
 #
-# Copyright (c) 2019-2020 P3TERX <https://p3terx.com>
-#
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
+# 
 # This is free software, licensed under the MIT License.
 # See /LICENSE for more information.
 #
-# https://github.com/P3TERX/Actions-OpenWrt
-# Description: Build OpenWrt using GitHub Actions
-#
-# Copyright (C) 2022 Ing
-#
-
 
 name: Build OpenWrt
 
@@ -183,7 +177,7 @@ jobs:
 
         filename=${{ env.CONFIG_REPO }}-${{ env.CONFIG_NAME }}-${{ env.release }}.zip
 
-        gzip *.img
+        [ -f *.img ] && gzip *.img
         zip -q -r ${filename} *
         echo "firmware=$PWD/${filename}" >> $GITHUB_ENV
 
