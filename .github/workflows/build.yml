@@ -166,7 +166,7 @@ jobs:
         find dl -size -1024c -exec rm -f {} \;
 
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) V=s
+        make -j1 V=s
 
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
         [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
