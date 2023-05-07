@@ -166,6 +166,7 @@ jobs:
         find dl -size -1024c -exec rm -f {} \;
 
         echo -e "$(nproc) thread compile"
+        make package/feeds/luci/luci-base/compile V=99   # 这里先编译luci-base
         make -j1 V=s
 
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
