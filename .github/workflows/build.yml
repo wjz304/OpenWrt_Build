@@ -118,11 +118,6 @@ jobs:
           rm -rf openwrt/package/lean/r8125
         fi
 
-        CONFIG_KVER=${{ env.CONFIG_KVER }}
-        if [ "6.1" == "${CONFIG_KVER}" ]; then
-          [ -z "`grep 'kmod-fs-efivarfs' openwrt/package/kernel/mac80211/intel.mk`" ] && sed -i 's/+kmod-mac80211/& +LINUX_6_1:kmod-fs-efivarfs/' openwrt/package/kernel/mac80211/intel.mk
-        fi
-
     - name: feeds
       run: |
         cd ~/openwrt 
