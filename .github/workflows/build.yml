@@ -118,6 +118,8 @@ jobs:
           rm -rf openwrt/package/lean/r8125
         fi
 
+        sed -i 's|+PACKAGE_kmod-cfg80211:libnl-tiny$|& +kmod-cfg80211|' openwrt/package/network/services/hostapd/Makefile
+
     - name: feeds
       run: |
         cd ~/openwrt 
