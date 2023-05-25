@@ -118,7 +118,9 @@ jobs:
           rm -rf openwrt/package/lean/r8125
         fi
 
-        sed -i 's|+PACKAGE_kmod-cfg80211:libnl-tiny$|& +kmod-cfg80211|' openwrt/package/network/services/hostapd/Makefile
+        # 容错
+        sed -i '/TARGET_LDFLAGS += -lubox -lubus/i\TARGET_CFLAGS += -ffunction-sections -fdata-sections -flto' openwrt/package/network/services/hostapd/Makefile
+        sed -i '/TARGET_LDFLAGS += -lubox -lubus/i\TARGET_LDFLAGS += -Wl,--gc-sections -flto=jobserver -fuse-linker-plugin' openwrt/package/network/services/hostapd/Makefile
 
     - name: feeds
       run: |
