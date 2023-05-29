@@ -187,7 +187,7 @@ jobs:
 
         filename=${{ env.CONFIG_REPO }}-${{ env.CONFIG_NAME }}-${{ env.release }}.zip
 
-        [ -f *.img ] && gzip *.img
+        gzip *.img 2>/dev/null || true
         zip -q -r ${filename} *
         echo "firmware=$PWD/${filename}" >> $GITHUB_ENV
 
