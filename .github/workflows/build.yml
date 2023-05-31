@@ -51,7 +51,7 @@ jobs:
       
     - name: get config
       run: |
-        # config 命名规则: <repo>;<owner>;<kver>;<name>.config
+        # config 命名规则: <repo>;<owner>;<name>.config
 
         config="${{ matrix.config }}"
         config=${config/.config/}            # 去掉 .config 后缀
@@ -64,8 +64,7 @@ jobs:
 
         echo "CONFIG_REPO=${array[0]}" >> $GITHUB_ENV
         echo "CONFIG_OWNER=${array[1]}" >> $GITHUB_ENV
-        echo "CONFIG_KVER=${array[2]}" >> $GITHUB_ENV
-        echo "CONFIG_NAME=${array[3]}" >> $GITHUB_ENV
+        echo "CONFIG_NAME=${array[2]}" >> $GITHUB_ENV
 
         if [ "${array[0]}" == "openwrt" ]; then
           echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
@@ -143,7 +142,7 @@ jobs:
 
         if [ -e "$GITHUB_WORKSPACE/${{ env.diyscript }}" ]; then
           chmod +x "$GITHUB_WORKSPACE/${{ env.diyscript }}"
-          "$GITHUB_WORKSPACE/${{ env.diyscript }}" "${{ env.CONFIG_REPO }}" "${{ env.CONFIG_OWNER }}" "${{ env.CONFIG_KVER }}"
+          "$GITHUB_WORKSPACE/${{ env.diyscript }}" "${{ env.CONFIG_REPO }}" "${{ env.CONFIG_OWNER }}"
         fi
 
         make defconfig
@@ -170,7 +169,7 @@ jobs:
         find dl -size -1024c -exec rm -f {} \;
 
         echo -e "$(nproc) thread compile"
-        make -j1 V=s
+        make -j$(nproc) V=s || make -j1 V=s
 
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
         [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
