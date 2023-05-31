@@ -57,7 +57,7 @@ jobs:
         config=${config/.config/}            # 去掉 .config 后缀
         array=(${config//;/ })               # ;号分割
         
-        if [ ${#array[@]} -ne 4 ]; then
+        if [ ${#array[@]} -ne 3 ]; then
           echo "${{ matrix.config }} name error!"
           exit 1
         fi
