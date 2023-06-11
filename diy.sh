@@ -162,12 +162,12 @@ sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/ing/luci-app-z
 
 
 # Modify app name
-sed -i 's/"IPSec VPN 服务器"/"IPSec VPN"/g' package/feeds/luci/luci-app-ipsec-server/po/zh-cn/ipsec-server.po    # `grep "IPSec VPN 服务器" -rl ./`
-sed -i 's/"IPSec VPN 服务器"/"IPSec VPN"/g' package/feeds/luci/luci-app-ipsec-vpnd/po/zh-cn/ipsec.po    # `grep "IPSec VPN 服务器" -rl ./`
-sed -i 's/"挂载 SMB 网络共享"/"挂载 SMB"/g' package/feeds/luci/luci-app-cifs-mount/po/zh-cn/cifs.po    # `grep "挂载 SMB 网络共享" -rl ./`
-sed -i 's/"Turbo ACC 网络加速"/"Turbo ACC"/g' package/feeds/luci/luci-app-turboacc/po/zh-cn/turboacc.po    # `grep "Turbo ACC 网络加速" -rl ./`
-sed -i 's/"实时流量监测"/"监测"/g' package/feeds/luci/luci-app-wrtbwmon/po/zh-cn/wrtbwmon.po    # `grep "实时流量监测" -rl ./`
-sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argon-config/po/zh-cn/argon-config.po    # `grep "Argon 主题设置" -rl ./`
+sed -i 's/"IPSec VPN 服务器"/"IPSec VPN"/g' package/feeds/luci/luci-app-ipsec-server/po/*/ipsec-server.po    # `grep "IPSec VPN 服务器" -rl ./`
+sed -i 's/"IPSec VPN 服务器"/"IPSec VPN"/g' package/feeds/luci/luci-app-ipsec-vpnd/po/*/ipsec.po    # `grep "IPSec VPN 服务器" -rl ./`
+sed -i 's/"挂载 SMB 网络共享"/"挂载 SMB"/g' package/feeds/luci/luci-app-cifs-mount/po/*/cifs.po    # `grep "挂载 SMB 网络共享" -rl ./`
+sed -i 's/"Turbo ACC 网络加速"/"Turbo ACC"/g' package/feeds/luci/luci-app-turboacc/po/*/turboacc.po    # `grep "Turbo ACC 网络加速" -rl ./`
+sed -i 's/"实时流量监测"/"监测"/g' package/feeds/luci/luci-app-wrtbwmon/po/*/wrtbwmon.po    # `grep "实时流量监测" -rl ./`
+sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argon-config/po/*/argon-config.po    # `grep "Argon 主题设置" -rl ./`
 
 
 
