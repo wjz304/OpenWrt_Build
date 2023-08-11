@@ -128,10 +128,12 @@ sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' packag
 
 # Modify default theme
 deftheme=bootstrap
-if [ "${owner}" == "Ing" -o "${owner}" == "OldWang" ]; then
-  deftheme=argon
+if [ "${owner}" == "Leeson" ]; then
+  deftheme=bootstrap
 elif [ "${owner}" == "Lyc" ]; then
   deftheme=pink
+else
+  deftheme=argon
 fi
 echo deftheme: ${deftheme}
 sed -i "s/bootstrap/${deftheme}/g" feeds/luci/collections/luci/Makefile
