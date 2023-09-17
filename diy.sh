@@ -15,10 +15,9 @@
 repo=${1:-openwrt}
 owner=${2:-Ing}
 
-
 echo "OpenWrt DIY script"
 
-echo "repo: ${repo}; owner: ${owner};" 
+echo "repo: ${repo}; owner: ${owner};"
 
 # Modify default IP
 sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
@@ -29,12 +28,10 @@ sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generat
 # Modify timezone
 #sed -i "s/'UTC'/'CST-8'\n        set system.@system[-1].zonename='Asia\/Shanghai'/g" package/base-files/files/bin/config_generate
 
-
-
 # Modify banner
 if [ "${owner}" == "Ing" ]; then
-if [ "${repo}" == "openwrt" ]; then
-cat > package/base-files/files/etc/banner << EOF
+  if [ "${repo}" == "openwrt" ]; then
+    cat >package/base-files/files/etc/banner <<EOF
   _______                     ________        __
  |       |.-----.-----.-----.|  |  |  |.----.|  |_
  |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
@@ -45,8 +42,8 @@ cat > package/base-files/files/etc/banner << EOF
  -----------------------------------------------------
 
 EOF
-else
-cat > package/base-files/files/etc/banner << EOF
+  else
+    cat >package/base-files/files/etc/banner <<EOF
      _________
     /        /\      _    ___ ___  ___
    /  LE    /  \    | |  | __|   \| __|
@@ -58,9 +55,9 @@ cat > package/base-files/files/etc/banner << EOF
     \________\/    -------------------------------------------
 
 EOF
-fi
+  fi
 else
-cat > package/base-files/files/etc/banner << EOF
+  cat >package/base-files/files/etc/banner <<EOF
  ██████╗ ██████╗ ███████╗███╗   ██╗██╗    ██╗██████╗ ████████╗
 ██╔═══██╗██╔══██╗██╔════╝████╗  ██║██║    ██║██╔══██╗╚══██╔══╝
 ██║   ██║██████╔╝█████╗  ██╔██╗ ██║██║ █╗ ██║██████╔╝   ██║   
@@ -72,7 +69,6 @@ cat > package/base-files/files/etc/banner << EOF
   -------------------------------------------
 EOF
 fi
-
 
 # lede    ==> ${defaultsettings}
 # openwrt ==> feeds/ing/default-settings
@@ -105,8 +101,6 @@ sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing
 #sed -i '$i uci set network.wan.password=PPPOE_PASSWD' ${defaultsettings}/files/zzz-default-settings
 #sed -i '$i uci commit network' ${defaultsettings}/files/zzz-default-settings
 
-
-
 # Modify ssid
 #sed -i 's/OpenWrt/OpenWrting/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
 # Enable wifi
@@ -114,17 +108,11 @@ sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing
 # Enable MU-MIMO
 #sed -i 's/mu_beamformer=0/mu_beamformer=1/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
-
-
 # Modify kernel version
 #sed -i 's/KERNEL_PATCHVER:=5.15/KERNEL_PATCHVER:=5.4/g' ./target/linux/x86/Makefile
 
-
-
 # Modify maximum connections
 sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' package/base-files/files/etc/sysctl.conf
-
-
 
 # Modify default theme
 deftheme=bootstrap
@@ -139,44 +127,37 @@ echo deftheme: ${deftheme}
 sed -i "s/bootstrap/${deftheme}/g" feeds/luci/collections/luci/Makefile
 sed -i "s/bootstrap/${deftheme}/g" feeds/luci/modules/luci-base/root/etc/config/luci
 
-
 # Add kernel build user
 [ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
-    echo 'CONFIG_KERNEL_BUILD_USER="${owner}"' >>.config ||
-    sed -i "s|\(CONFIG_KERNEL_BUILD_USER=\).*|\1$\"${owner}\"|" .config
+  echo 'CONFIG_KERNEL_BUILD_USER="${owner}"' >>.config ||
+  sed -i "s|\(CONFIG_KERNEL_BUILD_USER=\).*|\1$\"${owner}\"|" .config
 
 # Add kernel build domain
 [ -z $(grep "CONFIG_KERNEL_BUILD_DOMAIN=" .config) ] &&
-    echo 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >>.config ||
-    sed -i 's|\(CONFIG_KERNEL_BUILD_DOMAIN=\).*|\1$"GitHub Actions"|' .config
-
+  echo 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >>.config ||
+  sed -i 's|\(CONFIG_KERNEL_BUILD_DOMAIN=\).*|\1$"GitHub Actions"|' .config
 
 # Modify kernel and rootfs size
 #sed -i 's/CONFIG_TARGET_KERNEL_PARTSIZE=.*$/CONFIG_TARGET_KERNEL_PARTSIZE=64/' .config
 #sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=.*$/CONFIG_TARGET_ROOTFS_PARTSIZE=1024/' .config
 
-
-
 # Modify app list
-sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/luci/luci-app-ipsec-server/luasrc/controller/ipsec-server.lua    # `grep "IPSec VPN Server" -rl ./`
-sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/luci/luci-app-ipsec-vpnd/luasrc/controller/ipsec-server.lua    # `grep "IPSec VPN Server" -rl ./`
-sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/ing/luci-app-zerotier/luasrc/controller/zerotier.lua    # `grep "ZeroTier" -rl ./`
-
+sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/luci/luci-app-ipsec-server/luasrc/controller/ipsec-server.lua # `grep "IPSec VPN Server" -rl ./`
+sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/luci/luci-app-ipsec-vpnd/luasrc/controller/ipsec-server.lua   # `grep "IPSec VPN Server" -rl ./`
+sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/ing/luci-app-zerotier/luasrc/controller/zerotier.lua          # `grep "ZeroTier" -rl ./`
 
 # Modify app name
-sed -i 's/"IPSec VPN 服务器"/"IPSec VPN"/g' package/feeds/luci/luci-app-ipsec-server/po/*/ipsec-server.po    # `grep "IPSec VPN 服务器" -rl ./`
-sed -i 's/"IPSec VPN 服务器"/"IPSec VPN"/g' package/feeds/luci/luci-app-ipsec-vpnd/po/*/ipsec.po    # `grep "IPSec VPN 服务器" -rl ./`
-sed -i 's/"挂载 SMB 网络共享"/"挂载 SMB"/g' package/feeds/luci/luci-app-cifs-mount/po/*/cifs.po    # `grep "挂载 SMB 网络共享" -rl ./`
-sed -i 's/"Turbo ACC 网络加速"/"Turbo ACC"/g' package/feeds/luci/luci-app-turboacc/po/*/turboacc.po    # `grep "Turbo ACC 网络加速" -rl ./`
-sed -i 's/"实时流量监测"/"监测"/g' package/feeds/luci/luci-app-wrtbwmon/po/*/wrtbwmon.po    # `grep "实时流量监测" -rl ./`
-sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argon-config/po/*/argon-config.po    # `grep "Argon 主题设置" -rl ./`
-
-
+sed -i 's/"IPSec VPN 服务器"/"IPSec VPN"/g' package/feeds/luci/luci-app-ipsec-server/po/*/ipsec-server.po # `grep "IPSec VPN 服务器" -rl ./`
+sed -i 's/"IPSec VPN 服务器"/"IPSec VPN"/g' package/feeds/luci/luci-app-ipsec-vpnd/po/*/ipsec.po          # `grep "IPSec VPN 服务器" -rl ./`
+sed -i 's/"挂载 SMB 网络共享"/"挂载 SMB"/g' package/feeds/luci/luci-app-cifs-mount/po/*/cifs.po            # `grep "挂载 SMB 网络共享" -rl ./`
+sed -i 's/"Turbo ACC 网络加速"/"Turbo ACC"/g' package/feeds/luci/luci-app-turboacc/po/*/turboacc.po       # `grep "Turbo ACC 网络加速" -rl ./`
+sed -i 's/"实时流量监测"/"监测"/g' package/feeds/luci/luci-app-wrtbwmon/po/*/wrtbwmon.po                   # `grep "实时流量监测" -rl ./`
+sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argon-config/po/*/argon-config.po      # `grep "Argon 主题设置" -rl ./`
 
 # Info
 # luci-app-netdata 1.33.1汉化版 导致 web升级后 报错: /usr/lib/lua/luci/dispatcher.lua:220: /etc/config/luci seems to be corrupt, unable to find section 'main'
 
-# CONFIG_PACKAGE_luci-app-bypass_INCLUDE_Trojan-Go 
+# CONFIG_PACKAGE_luci-app-bypass_INCLUDE_Trojan-Go
 # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_GO
 # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan
 # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_IPT2Socks

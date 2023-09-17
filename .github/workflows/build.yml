@@ -1,6 +1,6 @@
 #
 # Copyright (C) 2022 Ing <https://github.com/wjz304>
-# 
+#
 # This is free software, licensed under the MIT License.
 # See /LICENSE for more information.
 #
@@ -9,9 +9,8 @@ name: Build OpenWrt
 
 on:
   schedule:
-    - cron: '0 0 1/2 * *'
+    - cron: "0 0 1/2 * *"
   workflow_dispatch:
-
 
 jobs:
   matrix:
@@ -46,158 +45,158 @@ jobs:
       matrix: ${{ fromJson(needs.matrix.outputs.matrix) }}
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@main
-      
-    - name: get config
-      run: |
-        # config 命名规则: <repo>;<owner>;<name>.config
+      - name: Checkout
+        uses: actions/checkout@main
 
-        config="${{ matrix.config }}"
-        config=${config/.config/}            # 去掉 .config 后缀
-        array=(${config//;/ })               # ;号分割
-        
-        if [ ${#array[@]} -ne 3 ]; then
-          echo "${{ matrix.config }} name error!"
-          exit 1
-        fi
+      - name: get config
+        run: |
+          # config 命名规则: <repo>;<owner>;<name>.config
 
-        echo "CONFIG_REPO=${array[0]}" >> $GITHUB_ENV
-        echo "CONFIG_OWNER=${array[1]}" >> $GITHUB_ENV
-        echo "CONFIG_NAME=${array[2]}" >> $GITHUB_ENV
+          config="${{ matrix.config }}"
+          config=${config/.config/}            # 去掉 .config 后缀
+          array=(${config//;/ })               # ;号分割
 
-        if [ "${array[0]}" == "openwrt" ]; then
-          echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
-          echo "REPO_BRANCH=master" >> $GITHUB_ENV
-        fi
+          if [ ${#array[@]} -ne 3 ]; then
+            echo "${{ matrix.config }} name error!"
+            exit 1
+          fi
 
-        if [ "${array[0]}" == "lede" ]; then
-          echo "REPO_URL=https://github.com/coolsnowwolf/lede" >> $GITHUB_ENV
-          echo "REPO_BRANCH=master" >> $GITHUB_ENV
-        fi
+          echo "CONFIG_REPO=${array[0]}" >> $GITHUB_ENV
+          echo "CONFIG_OWNER=${array[1]}" >> $GITHUB_ENV
+          echo "CONFIG_NAME=${array[2]}" >> $GITHUB_ENV
 
-    - name: Init Env
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        git config --global user.name "github-actions[bot]"
+          if [ "${array[0]}" == "openwrt" ]; then
+            echo "REPO_URL=https://github.com/openwrt/openwrt" >> $GITHUB_ENV
+            echo "REPO_BRANCH=master" >> $GITHUB_ENV
+          fi
 
-        docker rmi `docker images -q`
-        sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
-        sudo -E apt-mark hold grub-efi-amd64-signed
-        sudo -E apt update
-        sudo -E apt -y purge azure-cli* docker* ghc* zulu* llvm* firefox google* dotnet* powershell* openjdk* mysql* php* mongodb* dotnet* snap*
-        sudo -E apt -y full-upgrade
-        sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-        bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
-        git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
-        libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
-        mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
-        libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip \
-        vim wget xmlto xxd zlib1g-dev python3-setuptools npm
-        sudo -E systemctl daemon-reload
-        sudo -E apt -y autoremove --purge
-        sudo -E apt clean
-        sudo -E timedatectl set-timezone "Asia/Shanghai"
-        
-        git clone https://github.com/openwrt-dev/po2lmo
-        pushd po2lmo
-          make && sudo make install
-        popd
+          if [ "${array[0]}" == "lede" ]; then
+            echo "REPO_URL=https://github.com/coolsnowwolf/lede" >> $GITHUB_ENV
+            echo "REPO_BRANCH=master" >> $GITHUB_ENV
+          fi
 
-    - name: Clone source code
-      run: |
-        df -hT $PWD
-        cd ~
+      - name: Init Env
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
 
-        git clone ${{ env.REPO_URL }} -b ${{ env.REPO_BRANCH }} openwrt
+          docker rmi `docker images -q`
+          sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android
+          sudo -E apt-mark hold grub-efi-amd64-signed
+          sudo -E apt update
+          sudo -E apt -y purge azure-cli* docker* ghc* zulu* llvm* firefox google* dotnet* powershell* openjdk* mysql* php* mongodb* dotnet* snap*
+          sudo -E apt -y full-upgrade
+          sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+          bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
+          git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
+          libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
+          mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
+          libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip \
+          vim wget xmlto xxd zlib1g-dev python3-setuptools npm
+          sudo -E systemctl daemon-reload
+          sudo -E apt -y autoremove --purge
+          sudo -E apt clean
+          sudo -E timedatectl set-timezone "Asia/Shanghai"
 
-        if [ -d "openwrt/package/lean/r8125" ]; then
-          rm -rf openwrt/package/lean/r8125
-        fi
+          git clone https://github.com/openwrt-dev/po2lmo
+          pushd po2lmo
+            make && sudo make install
+          popd
 
-        # 容错
-        #sed -i '/TARGET_LDFLAGS += -lubox -lubus/i\TARGET_CFLAGS += -ffunction-sections -fdata-sections -flto' openwrt/package/network/services/hostapd/Makefile
-        #sed -i '/TARGET_LDFLAGS += -lubox -lubus/i\TARGET_LDFLAGS += -Wl,--gc-sections -flto=jobserver -fuse-linker-plugin' openwrt/package/network/services/hostapd/Makefile
+      - name: Clone source code
+        run: |
+          df -hT $PWD
+          cd ~
 
-    - name: feeds
-      run: |
-        cd ~/openwrt 
-        sed -i '1 i src-git ing https://github.com/wjz304/openwrt-packages;${{ env.CONFIG_REPO }}' feeds.conf.default
+          git clone ${{ env.REPO_URL }} -b ${{ env.REPO_BRANCH }} openwrt
 
-        ./scripts/feeds update -a
+          if [ -d "openwrt/package/lean/r8125" ]; then
+            rm -rf openwrt/package/lean/r8125
+          fi
 
-        ./scripts/feeds install -a
+          # 容错
+          #sed -i '/TARGET_LDFLAGS += -lubox -lubus/i\TARGET_CFLAGS += -ffunction-sections -fdata-sections -flto' openwrt/package/network/services/hostapd/Makefile
+          #sed -i '/TARGET_LDFLAGS += -lubox -lubus/i\TARGET_LDFLAGS += -Wl,--gc-sections -flto=jobserver -fuse-linker-plugin' openwrt/package/network/services/hostapd/Makefile
 
-        ./scripts/feeds uninstall `grep Package ./feeds/ing.index | awk -F': ' '{print $2}'`
-        ./scripts/feeds install -p ing -a
+      - name: feeds
+        run: |
+          cd ~/openwrt 
+          sed -i '1 i src-git ing https://github.com/wjz304/openwrt-packages;${{ env.CONFIG_REPO }}' feeds.conf.default
 
-    - name: Make config
-      run: |
-        # $GITHUB_WORKSPACE == ${{ github.workspace }}
-        cd ~/openwrt
+          ./scripts/feeds update -a
 
-        [ -e "$GITHUB_WORKSPACE/${{ matrix.config }}" ] && cp "$GITHUB_WORKSPACE/${{ matrix.config }}" "./.config"
+          ./scripts/feeds install -a
 
-        if [ -e "$GITHUB_WORKSPACE/${{ env.diyscript }}" ]; then
-          chmod +x "$GITHUB_WORKSPACE/${{ env.diyscript }}"
-          "$GITHUB_WORKSPACE/${{ env.diyscript }}" "${{ env.CONFIG_REPO }}" "${{ env.CONFIG_OWNER }}"
-        fi
+          ./scripts/feeds uninstall `grep Package ./feeds/ing.index | awk -F': ' '{print $2}'`
+          ./scripts/feeds install -p ing -a
 
-        make defconfig
+      - name: Make config
+        run: |
+          # $GITHUB_WORKSPACE == ${{ github.workspace }}
+          cd ~/openwrt
 
-    - name: Check and Push config
-      run: |
-        git pull
-        [ -e "${{ matrix.config }}" ] && cp ~/openwrt/.config "${{ matrix.config }}"
-        status=$(git status -s | grep "${{ matrix.config }}" | awk '{printf $2}')
-        if [ -n "${status}" ]; then
-          git add "${status}"
-          git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
-          git push -f
-        fi
+          [ -e "$GITHUB_WORKSPACE/${{ matrix.config }}" ] && cp "$GITHUB_WORKSPACE/${{ matrix.config }}" "./.config"
 
-    - name: Compile the firmware
-      run: |
-        cd ~/openwrt
+          if [ -e "$GITHUB_WORKSPACE/${{ env.diyscript }}" ]; then
+            chmod +x "$GITHUB_WORKSPACE/${{ env.diyscript }}"
+            "$GITHUB_WORKSPACE/${{ env.diyscript }}" "${{ env.CONFIG_REPO }}" "${{ env.CONFIG_OWNER }}"
+          fi
 
-        echo -e "download package"
-        make download -j8 V=s
+          make defconfig
 
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
+      - name: Check and Push config
+        run: |
+          git pull
+          [ -e "${{ matrix.config }}" ] && cp ~/openwrt/.config "${{ matrix.config }}"
+          status=$(git status -s | grep "${{ matrix.config }}" | awk '{printf $2}')
+          if [ -n "${status}" ]; then
+            git add "${status}"
+            git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
+            git push -f
+          fi
 
-        echo -e "$(nproc) thread compile"
-        make -j$(nproc) V=s || make -j1 V=s
+      - name: Compile the firmware
+        run: |
+          cd ~/openwrt
 
-        grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
-        [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
+          echo -e "download package"
+          make download -j8 V=s
 
-    - name: Organize files
-      if: success() && !cancelled()
-      run: |
-        df -hT
-        cd ~/openwrt/bin/targets/*/*
-        ls -al
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
 
-        # sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
-        rm -rf packages *.buildinfo *.manifest *.bin sha256sums
+          echo -e "$(nproc) thread compile"
+          make -j$(nproc) V=s || make -j1 V=s
 
-        filename=${{ env.CONFIG_REPO }}-${{ env.CONFIG_NAME }}-${{ env.release }}.zip
+          grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > device_name
+          [ -s device_name ] && echo "device_name=_$(cat device_name)" >> $GITHUB_ENV
 
-        gzip *.img 2>/dev/null || true
-        zip -q -r ${filename} *
-        echo "firmware=$PWD/${filename}" >> $GITHUB_ENV
+      - name: Organize files
+        if: success() && !cancelled()
+        run: |
+          df -hT
+          cd ~/openwrt/bin/targets/*/*
+          ls -al
 
-    - name: Upload firmware to release
-      uses: softprops/action-gh-release@v1
-      if: success() && !cancelled()
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ env.release }}
-        files: ${{ env.firmware }}
+          # sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
+          rm -rf packages *.buildinfo *.manifest *.bin sha256sums
+
+          filename=${{ env.CONFIG_REPO }}-${{ env.CONFIG_NAME }}-${{ env.release }}.zip
+
+          gzip *.img 2>/dev/null || true
+          zip -q -r ${filename} *
+          echo "firmware=$PWD/${filename}" >> $GITHUB_ENV
+
+      - name: Upload firmware to release
+        uses: softprops/action-gh-release@v1
+        if: success() && !cancelled()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.release }}
+          files: ${{ env.firmware }}
 
     # - name: Delete workflow runs
     #   uses: Mattraks/delete-workflow-runs@v2
