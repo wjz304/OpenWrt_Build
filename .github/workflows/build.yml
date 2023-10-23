@@ -116,10 +116,6 @@ jobs:
             rm -rf openwrt/package/lean/r8125
           fi
 
-          # 容错
-          #sed -i '/TARGET_LDFLAGS += -lubox -lubus/i\TARGET_CFLAGS += -ffunction-sections -fdata-sections -flto' openwrt/package/network/services/hostapd/Makefile
-          #sed -i '/TARGET_LDFLAGS += -lubox -lubus/i\TARGET_LDFLAGS += -Wl,--gc-sections -flto=jobserver -fuse-linker-plugin' openwrt/package/network/services/hostapd/Makefile
-
       - name: feeds
         run: |
           cd ~/openwrt 
