@@ -2496,7 +2496,7 @@ CONFIG_PACKAGE_kmod-igbvf=y
 CONFIG_PACKAGE_kmod-igc=y
 # CONFIG_PACKAGE_kmod-ipvlan is not set
 CONFIG_PACKAGE_kmod-ixgbe=y
-# CONFIG_PACKAGE_kmod-ixgbevf is not set
+CONFIG_PACKAGE_kmod-ixgbevf=y
 # CONFIG_PACKAGE_kmod-lan743x is not set
 CONFIG_PACKAGE_kmod-libphy=y
 CONFIG_PACKAGE_kmod-macvlan=y
@@ -2516,7 +2516,7 @@ CONFIG_PACKAGE_kmod-pcnet32=y
 # CONFIG_PACKAGE_kmod-phy-aquantia is not set
 # CONFIG_PACKAGE_kmod-phy-ax88796b is not set
 # CONFIG_PACKAGE_kmod-phy-bcm84881 is not set
-# CONFIG_PACKAGE_kmod-phy-broadcom is not set
+CONFIG_PACKAGE_kmod-phy-broadcom=y
 # CONFIG_PACKAGE_kmod-phy-marvell is not set
 # CONFIG_PACKAGE_kmod-phy-marvell-10g is not set
 # CONFIG_PACKAGE_kmod-phy-microchip is not set
