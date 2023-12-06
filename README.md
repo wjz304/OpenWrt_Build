@@ -14,10 +14,16 @@
 
 ## Note
 
->源码仓库：[Lean's LEDE](https://github.com/coolsnowwolf/lede)  
+> 源码仓库：[Lean's LEDE](https://github.com/coolsnowwolf/lede)  
+> 默认后台：default IP is 192.168.2.1 and default password is "password".
 
->默认后台：default IP is 192.168.2.1 and default password is "password".  
-
+```
+* allpass  -> 自用
+* lin      -> LiN 专用
+* lyc      -> 李佑辰 专用
+* oldwang  -> 老王 专用
+* simple   -> Leeson 专用
+```
 
 ## Preview
 ![Image text](https://user-images.githubusercontent.com/5615843/217126692-7ff43adf-df84-4b3c-96f3-8bbfbf8656df.jpeg)  
