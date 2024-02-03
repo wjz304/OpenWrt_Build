@@ -155,7 +155,7 @@ jobs:
           # find dl -size -1024c -exec rm -f {} \;
 
           echo -e "$(nproc) thread compile"
-          make -j$(nproc) V=s || make -j1 V=s
+          make -j$(nproc) V=s >/dev/null 2>&1 || make -j1 V=s
 
           DEVICE_NAME=$(grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/')
      
