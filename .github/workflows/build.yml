@@ -181,6 +181,8 @@ jobs:
           popd  # bin/targets/*/*
           popd  # ${CONFIG_REPO}
 
+          df -h
+
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
         if: success() && !cancelled()
