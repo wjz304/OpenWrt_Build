@@ -88,7 +88,7 @@ jobs:
           script="${{ env.diyscript }}"
           config="${{ matrix.config }}"               # config 命名规则: <repo>;<owner>;<name>.config
           CONFIG=${config/.config/}                   # 去掉 .config 后缀
-          CONFIG_ARRAY=(${config//;/ })               # ;号分割
+          CONFIG_ARRAY=(${CONFIG//;/ })               # ;号分割
 
           if [ ${#CONFIG_ARRAY[@]} -ne 3 ]; then
             echo "${config} name error!"
