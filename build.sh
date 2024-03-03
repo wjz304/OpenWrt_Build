@@ -33,7 +33,7 @@ if [ "${CONFIG_REPO}" == "lede" ]; then
 fi
 
 if [ ! -d ${CONFIG_REPO} ]; then
-  git clone ${REPO_URL} -b ${REPO_BRANCH} ${CONFIG_REPO}
+  git clone --depth=1 -b ${REPO_BRANCH} ${REPO_URL} ${CONFIG_REPO}
   if [ -d "${CONFIG_REPO}/package/lean/r8125" ]; then
     rm -rf ${CONFIG_REPO}/package/lean/r8125
   fi

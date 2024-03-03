@@ -74,7 +74,7 @@ jobs:
           sudo apt -y autoremove --purge
           sudo apt clean
 
-          git clone https://github.com/openwrt-dev/po2lmo
+          git clone --depth=1 https://github.com/openwrt-dev/po2lmo
           pushd po2lmo
             make && sudo make install
           popd
@@ -110,7 +110,7 @@ jobs:
           fi
 
           if [ ! -d ${CONFIG_REPO} ]; then
-            git clone ${REPO_URL} -b ${REPO_BRANCH} ${CONFIG_REPO}
+            git clone --depth=1 -b ${REPO_BRANCH} ${REPO_URL} ${CONFIG_REPO}
             if [ -d "${CONFIG_REPO}/package/lean/r8125" ]; then
               rm -rf ${CONFIG_REPO}/package/lean/r8125
             fi
