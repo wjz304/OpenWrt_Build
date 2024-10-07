@@ -34,9 +34,12 @@ fi
 
 if [ ! -d ${CONFIG_REPO} ]; then
   git clone --depth=1 -b ${REPO_BRANCH} ${REPO_URL} ${CONFIG_REPO}
-  if [ -d "${CONFIG_REPO}/package/lean/r8125" ]; then
-    rm -rf ${CONFIG_REPO}/package/lean/r8125
-  fi
+  # if [ -d "${CONFIG_REPO}/package/kernel/r8125" ]; then
+  #   rm -rf ${CONFIG_REPO}/package/kernel/r8125
+  # fi
+  # if [ -d "${CONFIG_REPO}/package/lean/r8152" ]; then
+  #   rm -rf ${CONFIG_REPO}/package/lean/r8152
+  # fi
 fi
 
 # root.
@@ -48,6 +51,10 @@ git pull
 sed -i "/src-git ing /d; 1 i src-git ing https://github.com/wjz304/openwrt-packages;${CONFIG_REPO}" feeds.conf.default
 
 ./scripts/feeds update -a
+# if [ -d ./feeds/packages/lang/golang ]; then
+#   rm -rf ./feeds/packages/lang/golang
+#   git clone --depth=1 -b 22.x https://github.com/sbwml/packages_lang_golang ./feeds/packages/lang/golang
+# fi
 ./scripts/feeds install -a
 ./scripts/feeds uninstall $(grep Package ./feeds/ing.index | awk -F': ' '{print $2}')
 ./scripts/feeds install -p ing -a
