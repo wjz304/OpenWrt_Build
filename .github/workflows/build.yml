@@ -72,14 +72,12 @@ jobs:
           uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
           
           # sudo apt install --reinstall libc6
-          sudo systemctl daemon-reload
+          # sudo systemctl daemon-reload
           sudo apt -y autoremove --purge
           sudo apt -y clean
 
           git clone --depth=1 https://github.com/openwrt-dev/po2lmo
-          pushd po2lmo
-          make && sudo make install
-          popd
+          (cd po2lmo && sudo make && sudo make install)
 
           df -h
 
@@ -163,8 +161,7 @@ jobs:
           echo -e "download package"
           make download -j8 V=s
 
-          # find dl -size -1024c -exec ls -l {} \;
-          # find dl -size -1024c -exec rm -f {} \;
+          # find dl -size -1024c -exec ls -l {} \; -exec rm -f {} \;
 
           echo -e "$(nproc) thread compile"
           make -j$(nproc) V=s >/dev/null 2>&1 || make -j1 V=s
