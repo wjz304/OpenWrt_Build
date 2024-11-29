@@ -1,8 +1,6 @@
+#!/usr/bin/env bash
 #
-#!/bin/bash
-# © 2022 GitHub, Inc.
-#====================================================================
-# Copyright (c) 2022 Ing
+# Copyright (C) 2022 Ing <https://github.com/wjz304>
 #
 # This is free software, licensed under the MIT License.
 # See /LICENSE for more information.
@@ -10,7 +8,7 @@
 # https://github.com/wjz304/OpenWrt_Build
 # File name: diy.sh
 # Description: OpenWrt DIY script
-#====================================================================
+#
 
 repo=${1:-openwrt}
 owner=${2:-Ing}
@@ -29,8 +27,8 @@ sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generat
 #sed -i "s/'UTC'/'CST-8'\n        set system.@system[-1].zonename='Asia\/Shanghai'/g" package/base-files/files/bin/config_generate
 
 # Modify banner
-if [ "${owner}" == "Ing" ]; then
-  if [ "${repo}" == "openwrt" ]; then
+if [ "${owner}" = "Ing" ]; then
+  if [ "${repo}" = "openwrt" ]; then
     cat >package/base-files/files/etc/banner <<EOF
   _______                     ________        __
  |       |.-----.-----.-----.|  |  |  |.----.|  |_
@@ -73,7 +71,7 @@ fi
 # lede    ==> ${defaultsettings}
 # openwrt ==> feeds/ing/default-settings
 defaultsettings=*/*/default-settings
-[ "${repo}" == "openwrt" ] && language=zh_cn || language=zh_Hans
+[ "${repo}" = "openwrt" ] && language=zh_cn || language=zh_Hans
 
 # Set default language
 #sed -i "s/en/${language}/g" ${defaultsettings}/files/zzz-default-settings
@@ -85,6 +83,7 @@ defaultsettings=*/*/default-settings
 
 # Modify the version number
 sed -i "s/OpenWrt /${owner} build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" ${defaultsettings}/files/zzz-default-settings
+sed -i "s/LEDE /${owner} build $(TZ=UTC-8 date "+%Y.%m.%d") @ LEDE /g" ${defaultsettings}/files/zzz-default-settings
 
 # Remvoe openwrt_ing
 sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing\/d" \/etc\/opkg\/distfeeds.conf' ${defaultsettings}/files/zzz-default-settings
@@ -116,9 +115,9 @@ sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' packag
 
 # Modify default theme
 deftheme=bootstrap
-if [ "${owner}" == "Leeson" ]; then
+if [ "${owner}" = "Leeson" ]; then
   deftheme=bootstrap
-elif [ "${owner}" == "Lyc" ]; then
+elif [ "${owner}" = "Lyc" ]; then
   deftheme=pink
 else
   deftheme=argon
@@ -157,3 +156,4 @@ sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argo
 # CONFIG_PACKAGE_trojan-go  导致 web升级后 报错: /usr/lib/lua/luci/dispatcher.lua:220: /etc/config/luci seems to be corrupt, unable to find section 'main'
 
 # luci-app-beardropper 导致 web升级后 /etc/config/network 信息丢失
+# CONFIG_PACKAGE_kmod  导致 web升级 不能保存配置
