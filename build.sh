@@ -16,7 +16,7 @@ WORKSPACE="$(pwd)"
 script_path=$(realpath "$(dirname "${1}")/diy.sh")
 config_path=$(realpath "${1}")               # 绝对路径
 CONFIG_FNAME=$(basename "${1}" .config) # 取文件名
-CONFIG_ARRAY=(${CONFIG_FNAME//;/ })     # 分割成数组
+IFS=';' read -r -a CONFIG_ARRAY <<< "${CONFIG_FNAME}"     # 分割成数组
 
 if [ ${#CONFIG_ARRAY[@]} -ne 3 ]; then
   echo "${config_path} name error!" # config 命名规则: <repo>;<owner>;<name>.config
@@ -51,7 +51,7 @@ fi
 # root.
 export FORCE_UNSAFE_CONFIGURE=1
 
-pushd "${CONFIG_REPO}"
+pushd "${CONFIG_REPO}" || exit
 
 git pull
 
@@ -63,7 +63,7 @@ sed -i "/src-git ing /d; 1 i src-git ing https://github.com/wjz304/openwrt-packa
 #   git clone --depth=1 -b 22.x https://github.com/sbwml/packages_lang_golang ./feeds/packages/lang/golang
 # fi
 ./scripts/feeds install -a
-./scripts/feeds uninstall $(grep Package ./feeds/ing.index | awk -F': ' '{print $2}')
+./scripts/feeds uninstall "$(grep Package ./feeds/ing.index 2>/dev/null | awk -F': ' '{print $2}')"
 ./scripts/feeds install -p ing -a
 
 cp -f "${config_path}" "./.config"
@@ -75,16 +75,16 @@ chmod +x "./diy.sh"
 make defconfig
 
 if [ "$GITHUB_ACTIONS" = "true" ]; then
-  pushd "${GITHUB_WORKSPACE}"
+  pushd "${GITHUB_WORKSPACE}" || exit
   git pull
-  cp -f "${WORKSPACE}/${CONFIG_REPO}/.config" "${GITHUB_WORKSPACE}/${config}"
+  cp -f "${WORKSPACE}/${CONFIG_REPO}/.config" "${GITHUB_WORKSPACE}/${config_path}"
   status=$(git status -s | grep "${CONFIG_FNAME}" | awk '{printf $2}')
   if [ -n "${status}" ]; then
     git add "${status}"
     git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
     git push -f
   fi
-  popd
+  popd || exit
 fi
 
 echo "download package"
@@ -96,11 +96,11 @@ echo "$(nproc) thread compile"
 make -j$(nproc) V=s || make -j1 V=s
 if [ $? -ne 0 ]; then
   echo "Build failed!"
-  popd # ${CONFIG_REPO}
+  popd || exit # ${CONFIG_REPO}
   exit 1
 fi
 
-pushd bin/targets/*/*
+pushd bin/targets/*/* || exit
 
 ls -al
 
@@ -112,9 +112,9 @@ gzip -f *.img
 
 mv -f *.img.gz "${WORKSPACE}"
 
-popd # bin/targets/*/*
+popd || exit # bin/targets/*/*
 
-popd # ${CONFIG_REPO}
+popd || exit # ${CONFIG_REPO}
 
 du -chd1 "${CONFIG_REPO}"
 
