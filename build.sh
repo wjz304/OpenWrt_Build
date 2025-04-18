@@ -15,7 +15,7 @@ WORKSPACE="$(pwd)"
 
 script_path=$(realpath "$(dirname "${1}")/diy.sh")
 config_path=$(realpath "${1}")               # 绝对路径
-CONFIG_FNAME=$(basename "${1}" .config) # 取文件名
+CONFIG_FNAME=$(basename "${1}" .config)      # 取文件名
 IFS=';' read -r -a CONFIG_ARRAY <<< "${CONFIG_FNAME}"     # 分割成数组
 
 if [ ${#CONFIG_ARRAY[@]} -ne 3 ]; then
@@ -74,10 +74,11 @@ chmod +x "./diy.sh"
 
 make defconfig
 
-if [ "$GITHUB_ACTIONS" = "true" ]; then
+if [ "${GITHUB_ACTIONS}" = "true" ]; then
+  echo "upload ${config_path}"
   pushd "${GITHUB_WORKSPACE}" || exit
   git pull
-  cp -f "${WORKSPACE}/${CONFIG_REPO}/.config" "${config_path}"
+  cp -vf "${WORKSPACE}/${CONFIG_REPO}/.config" "${config_path}"
   status=$(git status -s | grep "${CONFIG_FNAME}" | awk '{printf $2}')
   if [ -n "${status}" ]; then
     git add "${status}"
