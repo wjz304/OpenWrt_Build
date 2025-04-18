@@ -86,7 +86,8 @@ jobs:
 
           cd /mnt/openwrt
           
-          sudo ${GITHUB_WORKSPACE}/build.sh "${GITHUB_WORKSPACE}/${{ matrix.config }}"
+          GITHUB_ACTIONS=${GITHUB_ACTIONS} GITHUB_WORKSPACE=${GITHUB_WORKSPACE} \
+            sudo ${GITHUB_WORKSPACE}/build.sh "${GITHUB_WORKSPACE}/${{ matrix.config }}"
 
           ls -al
           if [ $(ls *.img.gz | wc -l) -le 0 ]; then
