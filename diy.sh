@@ -70,7 +70,7 @@ fi
 
 # lede    ==> ${defaultsettings}
 # openwrt ==> feeds/ing/default-settings
-defaultsettings=*/*/default-settings
+defaultsettings="*/*/default-settings"
 [ "${repo}" = "openwrt" ] && language=zh_cn || language=zh_Hans
 
 # Set default language
@@ -127,12 +127,12 @@ sed -i "s/bootstrap/${deftheme}/g" feeds/luci/collections/luci/Makefile
 sed -i "s/bootstrap/${deftheme}/g" feeds/luci/modules/luci-base/root/etc/config/luci
 
 # Add kernel build user
-[ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
+[ -z "$(grep "CONFIG_KERNEL_BUILD_USER=" .config 2>/dev/null)" ] &&
   echo 'CONFIG_KERNEL_BUILD_USER="${owner}"' >>.config ||
   sed -i "s|\(CONFIG_KERNEL_BUILD_USER=\).*|\1$\"${owner}\"|" .config
 
 # Add kernel build domain
-[ -z $(grep "CONFIG_KERNEL_BUILD_DOMAIN=" .config) ] &&
+[ -z "$(grep "CONFIG_KERNEL_BUILD_DOMAIN=" .config 2>/dev/null)" ] &&
   echo 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >>.config ||
   sed -i 's|\(CONFIG_KERNEL_BUILD_DOMAIN=\).*|\1$"GitHub Actions"|' .config
 
