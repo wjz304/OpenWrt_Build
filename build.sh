@@ -13,11 +13,12 @@ fi
 
 WORK_PATH="$(pwd)"
 
-SCRIPT_FILE="${WORK_PATH}/diy.sh"
 CONFIG_FILE=$(realpath "${1}")                        # 传入的配置文件
 CONFIG_PATH=$(dirname "${CONFIG_FILE}")               # 配置文件路径
 CONFIG_NAME=$(basename "${CONFIG_FILE}" .config)      # 配置文件名
 IFS=';' read -r -a CONFIG_ARRAY <<< "${CONFIG_NAME}"  # 分割配置文件名
+
+SCRIPT_FILE="${CONFIG_PATH}/diy.sh"
 
 GITHUB_ACTIONS="${2:-false}"
 
@@ -69,11 +70,11 @@ sed -i "/src-git ing /d; 1 i src-git ing https://github.com/wjz304/openwrt-packa
 ./scripts/feeds uninstall "$(grep Package ./feeds/ing.index 2>/dev/null | awk -F': ' '{print $2}')"
 ./scripts/feeds install -p ing -a
 
-cp -f "${CONFIG_FILE}" "./.config"
-cp -f "${SCRIPT_FILE}" "./diy.sh"
+cp -f "${CONFIG_FILE}" ./.config
+cp -f "${SCRIPT_FILE}" ./diy.sh
 
-chmod +x "./diy.sh"
-"./diy.sh" "${WORK_PATH}/${CONFIG_REPO}" "${CONFIG_OWNER}" "${CONFIG_ARCH}"
+chmod +x ./diy.sh
+./diy.sh "${WORK_PATH}/${CONFIG_REPO}" "${CONFIG_OWNER}" "${CONFIG_ARCH}"
 
 make defconfig
 
