@@ -165,12 +165,6 @@ resolve_defaultsettings() {
 log "OpenWrt DIY script"
 log "repo: ${repo}; owner: ${owner}; arch: ${arch:-unknown}"
 
-if [ -d "./local-patches/aic8800" ] && [ -d "package/lean/aic8800" ]; then
-  log "Injecting local aic8800 patches"
-  copy_patch_dir "./local-patches/aic8800/patches-sdio" "package/lean/aic8800/patches-sdio"
-  copy_patch_dir "./local-patches/aic8800/patches-usb" "package/lean/aic8800/patches-usb"
-fi
-
 require_file "package/base-files/files/bin/config_generate"
 require_file ".config"
 
