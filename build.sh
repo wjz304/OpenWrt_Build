@@ -6,121 +6,204 @@
 # See /LICENSE for more information.
 #
 
-if [ -z "${1}" ] || [ ! -f "${1}" ]; then
-  echo "Usage: $0 <config file>"
+set -euo pipefail
+shopt -s nullglob
+
+log() {
+  echo "[build] $*"
+}
+
+die() {
+  echo "[build] $*" >&2
+  exit 1
+}
+
+ensure_git_identity() {
+  local git_name git_email
+
+  git_name="$(git config --get user.name || true)"
+  git_email="$(git config --get user.email || true)"
+
+  if [ -z "${git_name}" ]; then
+    git config user.name "${GITHUB_ACTOR:-github-actions[bot]}"
+  fi
+
+  if [ -z "${git_email}" ]; then
+    git config user.email "${GITHUB_ACTOR:-github-actions[bot]}@users.noreply.github.com"
+  fi
+}
+
+usage() {
+  echo "Usage: $0 <config file> [github_actions]"
+}
+
+if [ $# -lt 1 ] || [ ! -f "${1}" ]; then
+  usage
   exit 1
 fi
 
 WORK_PATH="$(pwd)"
 
-CONFIG_FILE=$(realpath "${1}")                        # 传入的配置文件
-CONFIG_PATH=$(dirname "${CONFIG_FILE}")               # 配置文件路径
-CONFIG_NAME=$(basename "${CONFIG_FILE}" .config)      # 配置文件名
-IFS=';' read -r -a CONFIG_ARRAY <<< "${CONFIG_NAME}"  # 分割配置文件名
+CONFIG_FILE="$(realpath "${1}")"
+CONFIG_PATH="$(dirname "${CONFIG_FILE}")"
+CONFIG_NAME="$(basename "${CONFIG_FILE}" .config)"
+IFS=';' read -r -a CONFIG_ARRAY <<< "${CONFIG_NAME}"
 
 SCRIPT_FILE="${CONFIG_PATH}/diy.sh"
-
+PATCHES_PATH="${CONFIG_PATH}/patches"
 GITHUB_ACTIONS="${2:-false}"
 
-if [ ${#CONFIG_ARRAY[@]} -ne 3 ]; then
-  echo "${CONFIG_FILE} name error!" # config 命名规则: <repo>;<owner>;<name>.config
-  exit 1
+if [ ! -f "${SCRIPT_FILE}" ]; then
+  die "Missing diy script: ${SCRIPT_FILE}"
+fi
+
+if [ "${#CONFIG_ARRAY[@]}" -ne 3 ]; then
+  die "${CONFIG_FILE} name error! Expected: <repo>;<owner>;<name>.config"
 fi
 
 CONFIG_REPO="${CONFIG_ARRAY[0]}"
 CONFIG_OWNER="${CONFIG_ARRAY[1]}"
 CONFIG_ARCH="${CONFIG_ARRAY[2]}"
 
-if [ "${CONFIG_REPO}" = "openwrt" ]; then
-  REPO_URL="https://github.com/openwrt/openwrt"
-  REPO_BRANCH="master"
-elif [ "${CONFIG_REPO}" = "lede" ]; then
-  REPO_URL="https://github.com/coolsnowwolf/lede"
-  REPO_BRANCH="master"
-else
-  echo "${CONFIG_FILE} name error!"
-  exit 1
-fi
+case "${CONFIG_REPO}" in
+  openwrt)
+    REPO_URL="https://github.com/openwrt/openwrt"
+    REPO_BRANCH="master"
+    ;;
+  lede)
+    REPO_URL="https://github.com/coolsnowwolf/lede"
+    REPO_BRANCH="master"
+    ;;
+  *)
+    die "${CONFIG_FILE} name error! Unsupported repo: ${CONFIG_REPO}"
+    ;;
+esac
 
-if [ ! -d "${WORK_PATH}/${CONFIG_REPO}" ]; then
-  git clone --depth=1 -b "${REPO_BRANCH}" "${REPO_URL}" "${WORK_PATH}/${CONFIG_REPO}"
-  # if [ -d "${CONFIG_REPO}/package/kernel/r8125" ]; then
-  #   rm -rf ${CONFIG_REPO}/package/kernel/r8125
-  # fi
-  # if [ -d "${CONFIG_REPO}/package/lean/r8152" ]; then
-  #   rm -rf ${CONFIG_REPO}/package/lean/r8152
-  # fi
-fi
+prepare_repo() {
+  local repo_path="${WORK_PATH}/${CONFIG_REPO}"
 
-# root.
+  if [ ! -d "${repo_path}/.git" ]; then
+    log "Cloning ${CONFIG_REPO} (${REPO_BRANCH})"
+    git clone --depth=1 -b "${REPO_BRANCH}" "${REPO_URL}" "${repo_path}"
+    return
+  fi
+
+  log "Updating ${CONFIG_REPO}"
+  git -C "${repo_path}" pull --ff-only
+}
+
+configure_feeds() {
+  log "Configuring feeds"
+  sed -i "/src-git ing /d; 1 i src-git ing https://github.com/wjz304/openwrt-packages;${CONFIG_REPO}" feeds.conf.default
+
+  ./scripts/feeds update -a
+  ./scripts/feeds install -a
+
+  if [ -f ./feeds/ing.index ]; then
+    local ing_packages=()
+    mapfile -t ing_packages < <(awk -F': ' '/^Package: / {print $2}' ./feeds/ing.index)
+    if [ "${#ing_packages[@]}" -gt 0 ]; then
+      ./scripts/feeds uninstall "${ing_packages[@]}"
+    fi
+  fi
+
+  ./scripts/feeds install -p ing -a
+}
+
+stage_local_files() {
+  log "Staging config and local scripts"
+  cp -f "${CONFIG_FILE}" ./.config
+  cp -f "${SCRIPT_FILE}" ./diy.sh
+
+  rm -rf ./local-patches
+  if [ -d "${PATCHES_PATH}" ]; then
+    cp -rf "${PATCHES_PATH}" ./local-patches
+  fi
+
+  chmod +x ./diy.sh
+}
+
+sync_config_back() {
+  if [ "${GITHUB_ACTIONS}" != "true" ]; then
+    return
+  fi
+
+  local config_rel
+  local attempt
+  local max_attempts=6
+  config_rel="$(basename "${CONFIG_FILE}")"
+
+  log "Uploading ${config_rel}"
+  (
+    cd "${CONFIG_PATH}"
+    git pull --rebase origin main
+    cp -vf "${WORK_PATH}/${CONFIG_REPO}/.config" "./${config_rel}"
+
+    if ! git diff --quiet -- "./${config_rel}"; then
+      ensure_git_identity
+      git add -- "./${config_rel}"
+      git commit -m "update $(date '+%Y-%m-%d %H:%M:%S')"
+
+      for attempt in $(seq 1 "${max_attempts}"); do
+        if git push origin HEAD:main; then
+          return
+        fi
+
+        log "Push rejected for ${config_rel}; retry ${attempt}/${max_attempts}"
+        git pull --rebase origin main
+        sleep $((attempt * 2))
+      done
+
+      die "Failed to push ${config_rel} after ${max_attempts} attempts"
+    fi
+  )
+}
+
+collect_firmware() {
+  pushd bin/targets/*/* >/dev/null
+
+  local img_files=( *.img )
+  if [ "${#img_files[@]}" -eq 0 ]; then
+    popd >/dev/null
+    die "No .img firmware files found"
+  fi
+
+  ls -al
+
+  rm -rf packages *.buildinfo *.manifest *.bin sha256sums
+  rm -f -- *.img.gz
+  gzip -f -- "${img_files[@]}"
+  mv -f -- *.img.gz "${WORK_PATH}/"
+
+  popd >/dev/null
+}
+
+prepare_repo
+
 export FORCE_UNSAFE_CONFIGURE=1
 
-pushd "${WORK_PATH}/${CONFIG_REPO}" || exit
+pushd "${WORK_PATH}/${CONFIG_REPO}" >/dev/null
 
-git pull
+configure_feeds
+stage_local_files
 
-sed -i "/src-git ing /d; 1 i src-git ing https://github.com/wjz304/openwrt-packages;${CONFIG_REPO}" feeds.conf.default
-
-./scripts/feeds update -a
-# if [ -d ./feeds/packages/lang/golang ]; then
-#   rm -rf ./feeds/packages/lang/golang
-#   git clone --depth=1 -b 22.x https://github.com/sbwml/packages_lang_golang ./feeds/packages/lang/golang
-# fi
-./scripts/feeds install -a
-./scripts/feeds uninstall "$(grep Package ./feeds/ing.index 2>/dev/null | awk -F': ' '{print $2}')"
-./scripts/feeds install -p ing -a
-
-cp -f "${CONFIG_FILE}" ./.config
-cp -f "${SCRIPT_FILE}" ./diy.sh
-
-chmod +x ./diy.sh
 ./diy.sh "${WORK_PATH}/${CONFIG_REPO}" "${CONFIG_OWNER}" "${CONFIG_ARCH}"
-
 make defconfig
 
-if [ "${GITHUB_ACTIONS}" = "true" ]; then
-  echo "upload ${CONFIG_FILE}"
-  pushd "${CONFIG_PATH}" || exit
-  git pull
-  cp -vf "${WORK_PATH}/${CONFIG_REPO}/.config" "${CONFIG_FILE}"
-  status=$(git status -s | grep "${CONFIG_NAME}" | awk '{printf $2}')
-  if [ -n "${status}" ]; then
-    git add "${status}"
-    git commit -m "update $(date +%Y-%m-%d" "%H:%M:%S)"
-    git push -f
-  fi
-  popd || exit # "${CONFIG_PATH}"
+sync_config_back
+
+log "Downloading packages"
+make download -j"$(nproc)" V=s
+
+log "$(nproc) thread compile"
+if ! make -j"$(nproc)" V=s; then
+  make -j1 V=s
 fi
 
-echo "download package"
-make download -j8 V=s
+collect_firmware
 
-# find dl -size -1024c -exec ls -l {} \; -exec rm -f {} \;
-
-echo "$(nproc) thread compile"
-make -j"$(nproc)" V=s || make -j1 V=s
-if [ $? -ne 0 ]; then
-  echo "Build failed!"
-  popd || exit # "${WORK_PATH}/${CONFIG_REPO}"
-  exit 1
-fi
-
-pushd bin/targets/*/* || exit
-
-ls -al
-
-# sed -i '/buildinfo/d; /\.bin/d; /\.manifest/d' sha256sums
-rm -rf packages *.buildinfo *.manifest *.bin sha256sums
-
-rm -f *.img.gz
-gzip -f *.img
-
-mv -f *.img.gz "${WORK_PATH}"
-
-popd || exit # bin/targets/*/*
-
-popd || exit # "${WORK_PATH}/${CONFIG_REPO}"
+popd >/dev/null
 
 du -chd1 "${WORK_PATH}/${CONFIG_REPO}"
 
-echo "Done"
+log "Done"

@@ -10,149 +10,228 @@
 # Description: OpenWrt DIY script
 #
 
-repo=${1:-openwrt}
-owner=${2:-Ing}
+set -euo pipefail
+shopt -s nullglob
 
-echo "OpenWrt DIY script"
+repo="${1:-openwrt}"
+owner="${2:-Ing}"
+arch="${3:-}"
 
-echo "repo: ${repo}; owner: ${owner};"
+log() {
+  echo "[diy] $*"
+}
 
-# Modify default IP
-sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
+require_file() {
+  local file="$1"
+  [ -f "${file}" ] || {
+    echo "[diy] Missing file: ${file}" >&2
+    exit 1
+  }
+}
 
-# Modify hostname
-#sed -i 's/OpenWrt/OpenWrting/g' package/base-files/files/bin/config_generate
+copy_patch_dir() {
+  local src_dir="$1"
+  local dst_dir="$2"
+  local patch_files=("${src_dir}"/*.patch)
 
-# Modify timezone
-#sed -i "s/'UTC'/'CST-8'\n        set system.@system[-1].zonename='Asia\/Shanghai'/g" package/base-files/files/bin/config_generate
+  [ "${#patch_files[@]}" -gt 0 ] || return 0
 
-# Modify banner
-if [ "${owner}" = "Ing" ]; then
-  if [ "${repo}" = "openwrt" ]; then
-    cat >package/base-files/files/etc/banner <<EOF
+  mkdir -p "${dst_dir}"
+  cp -f "${patch_files[@]}" "${dst_dir}/"
+}
+
+apply_sed() {
+  local expr="$1"
+  shift
+
+  local pattern file
+  for pattern in "$@"; do
+    for file in ${pattern}; do
+      [ -e "${file}" ] || continue
+      sed -i "${expr}" "${file}"
+    done
+  done
+}
+
+set_config_value() {
+  local key="$1"
+  local value="$2"
+
+  if grep -q "^${key}=" .config 2>/dev/null; then
+    sed -i "s|^${key}=.*|${key}=${value}|" .config
+  else
+    echo "${key}=${value}" >> .config
+  fi
+}
+
+write_banner() {
+  local banner_file="package/base-files/files/etc/banner"
+
+  mkdir -p "$(dirname "${banner_file}")"
+
+  if [ "${owner}" = "Ing" ] && [ "${repo}" = "openwrt" ]; then
+    cat >"${banner_file}" <<EOF
   _______                     ________        __
  |       |.-----.-----.-----.|  |  |  |.----.|  |_
  |   -   ||  _  |  -__|     ||  |  |  ||   _||   _|
  |_______||   __|_____|__|__||________||__|  |____|
-          |__|                   Openwrt By ${owner} 
+          |__|                   OpenWrt By ${owner}
  -----------------------------------------------------
  %D %V, %C
  -----------------------------------------------------
 
 EOF
-  else
-    cat >package/base-files/files/etc/banner <<EOF
+    return
+  fi
+
+  if [ "${owner}" = "Ing" ] && [ "${repo}" = "lede" ]; then
+    cat >"${banner_file}" <<EOF
      _________
-    /        /\      _    ___ ___  ___
-   /  LE    /  \    | |  | __|   \| __|
-  /    DE  /    \   | |__| _|| |) | _|
- /________/  LE  \  |____|___|___/|___|        Lede By ${owner}  
- \        \   DE /
-  \    LE  \    /  -------------------------------------------
-   \  DE    \  /    %D %V, %C
-    \________\/    -------------------------------------------
+    /        /\\      _    ___ ___  ___
+   /  LE    /  \\    | |  | __|   \\| __|
+  /    DE  /    \\   | |__| _|| |) | _|
+ /________/  LE  \\  |____|___|___/|___|        LEDE By ${owner}
+ \\        \\   DE /
+  \\    LE  \\    /  -------------------------------------------
+   \\  DE    \\  /    %D %V, %C
+    \\________\\/    -------------------------------------------
 
 EOF
+    return
   fi
-else
-  cat >package/base-files/files/etc/banner <<EOF
- ██████╗ ██████╗ ███████╗███╗   ██╗██╗    ██╗██████╗ ████████╗
-██╔═══██╗██╔══██╗██╔════╝████╗  ██║██║    ██║██╔══██╗╚══██╔══╝
-██║   ██║██████╔╝█████╗  ██╔██╗ ██║██║ █╗ ██║██████╔╝   ██║   
-██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║██║███╗██║██╔══██╗   ██║   
-╚██████╔╝██║     ███████╗██║ ╚████║╚███╔███╔╝██║  ██║   ██║   
- ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝ ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   
-  -------------------------------------------
-  		%D %V, %C      By ${owner} 
-  -------------------------------------------
+
+  cat >"${banner_file}" <<EOF
+  ___                  _       _   ____            ${owner}
+ / _ \ _ __   ___ _ __| |_    | | | __ ) _   _    ${repo}
+| | | | '_ \ / _ \ '__| __|   | | |  _ \| | | |
+| |_| | |_) |  __/ |  | |_    | | | |_) | |_| |
+ \___/| .__/ \___|_|   \__|   |_| |____/ \__, |
+      |_|                                 |___/
+ -----------------------------------------------------
+ %D %V, %C
+ -----------------------------------------------------
+
 EOF
+}
+
+write_nat_loopback_defaults() {
+  local defaults_dir="package/base-files/files/etc/uci-defaults"
+  mkdir -p "${defaults_dir}"
+
+  cat >"${defaults_dir}/99-nat-loopback" <<'EOF'
+#!/bin/sh
+
+changed=0
+
+for opt in flow_offloading flow_offloading_hw fullcone fullcone6; do
+  if [ "$(uci -q get firewall.@defaults[0].${opt})" = "1" ]; then
+    uci -q set firewall.@defaults[0].${opt}='0'
+    changed=1
+  fi
+done
+
+for section in $(uci -q show firewall | sed -n 's/^\(firewall\.@redirect\[[0-9]\+\]\)\..*/\1/p' | sort -u); do
+  [ "$(uci -q get ${section}.target)" = "SNAT" ] && continue
+
+  if [ "$(uci -q get ${section}.reflection)" != "1" ]; then
+    uci -q set ${section}.reflection='1'
+    changed=1
+  fi
+
+  if [ -z "$(uci -q get ${section}.reflection_src)" ]; then
+    uci -q set ${section}.reflection_src='internal'
+    changed=1
+  fi
+done
+
+if [ "${changed}" = "1" ]; then
+  uci -q commit firewall
 fi
 
-# lede    ==> ${defaultsettings}
-# openwrt ==> feeds/ing/default-settings
-defaultsettings="*/*/default-settings"
-[ "${repo}" = "openwrt" ] && language=zh_cn || language=zh_Hans
+exit 0
+EOF
 
-# Set default language
-#sed -i "s/en/${language}/g" ${defaultsettings}/files/zzz-default-settings
-#sed -i "s/en/${language}/g" package/luci/modules/luci-base/root/etc/uci-defaults/luci-base
-#sed -i "s/+@LUCI_LANG_en/+@LUCI_LANG_${language}/g" ${defaultsettings}/Makefile
+  chmod +x "${defaults_dir}/99-nat-loopback"
+}
 
-# Modify password to Null
-#sed -i '/CYXluq4wUazHjmCDBCqXF/d' ${defaultsettings}/files/zzz-default-settings
+resolve_defaultsettings() {
+  if [ "${repo}" = "openwrt" ]; then
+    echo "feeds/ing/default-settings"
+  else
+    echo "package/lean/default-settings"
+  fi
+}
 
-# Modify the version number
-sed -i "s/OpenWrt /${owner} build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" ${defaultsettings}/files/zzz-default-settings
-sed -i "s/LEDE /${owner} build $(TZ=UTC-8 date "+%Y.%m.%d") @ LEDE /g" ${defaultsettings}/files/zzz-default-settings
+log "OpenWrt DIY script"
+log "repo: ${repo}; owner: ${owner}; arch: ${arch:-unknown}"
 
-# Remvoe openwrt_ing
-sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing\/d" \/etc\/opkg\/distfeeds.conf' ${defaultsettings}/files/zzz-default-settings
+if [ -d "./local-patches/aic8800" ] && [ -d "package/lean/aic8800" ]; then
+  log "Injecting local aic8800 patches"
+  copy_patch_dir "./local-patches/aic8800/patches-sdio" "package/lean/aic8800/patches-sdio"
+  copy_patch_dir "./local-patches/aic8800/patches-usb" "package/lean/aic8800/patches-usb"
+fi
 
-# Modify network setting
-#sed -i '$i uci set network.lan.ifname="eth1 eth2 eth3"' ${defaultsettings}/files/zzz-default-settings
-#sed -i '$i uci set network.wan.ifname="eth0"' ${defaultsettings}/files/zzz-default-settings
-#sed -i '$i uci set network.wan.proto=pppoe' ${defaultsettings}/files/zzz-default-settings
-#sed -i '$i uci set network.wan6.ifname="eth0"' ${defaultsettings}/files/zzz-default-settings
-#sed -i '$i uci commit network' ${defaultsettings}/files/zzz-default-settings
+require_file "package/base-files/files/bin/config_generate"
+require_file ".config"
 
-# Modify Default PPPOE Setting
-#sed -i '$i uci set network.wan.username=PPPOE_USERNAME' ${defaultsettings}/files/zzz-default-settings
-#sed -i '$i uci set network.wan.password=PPPOE_PASSWD' ${defaultsettings}/files/zzz-default-settings
-#sed -i '$i uci commit network' ${defaultsettings}/files/zzz-default-settings
+defaultsettings="$(resolve_defaultsettings)"
+if [ ! -d "${defaultsettings}" ]; then
+  echo "[diy] default-settings not found: ${defaultsettings}" >&2
+  exit 1
+fi
 
-# Modify ssid
-#sed -i 's/OpenWrt/OpenWrting/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
-# Enable wifi
-#sed -i 's/.disabled=1/.disabled=0/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
-# Enable MU-MIMO
-#sed -i 's/mu_beamformer=0/mu_beamformer=1/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
+default_settings_file="${defaultsettings}/files/zzz-default-settings"
+sysctl_file="package/base-files/files/etc/sysctl.conf"
 
-# Modify kernel version
-#sed -i 's/KERNEL_PATCHVER:=5.15/KERNEL_PATCHVER:=5.4/g' ./target/linux/x86/Makefile
+require_file "${default_settings_file}"
+require_file "${sysctl_file}"
 
-# Modify maximum connections
-sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' package/base-files/files/etc/sysctl.conf
+# Modify default IP
+sed -i 's/192.168.1.1/192.168.2.1/g' package/base-files/files/bin/config_generate
+
+# Banner
+write_banner
+
+# Modify version string
+sed -i "s/OpenWrt /${owner} build $(TZ=UTC-8 date '+%Y.%m.%d') @ OpenWrt /g" "${default_settings_file}"
+sed -i "s/LEDE /${owner} build $(TZ=UTC-8 date '+%Y.%m.%d') @ LEDE /g" "${default_settings_file}"
+
+# Remove openwrt_ing feed entry from runtime distfeeds config
+if ! grep -q 'openwrt_ing\\/d' "${default_settings_file}"; then
+  sed -i '/sed -i "s\/# \/\/g" \/etc\/opkg\/distfeeds.conf/a\sed -i "\/openwrt_ing\/d" \/etc\/opkg\/distfeeds.conf' "${default_settings_file}"
+fi
+
+# Increase maximum tracked connections
+if ! grep -q '^net.netfilter.nf_conntrack_max=165535$' "${sysctl_file}"; then
+  sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' "${sysctl_file}"
+fi
+
+# Keep NAT loopback stable on LEDE firewall defaults
+write_nat_loopback_defaults
 
 # Modify default theme
-deftheme=bootstrap
-if [ "${owner}" = "Leeson" ]; then
-  deftheme=bootstrap
-elif [ "${owner}" = "Lyc" ]; then
-  deftheme=pink
-else
-  deftheme=argon
-fi
-echo deftheme: ${deftheme}
-sed -i "s/bootstrap/${deftheme}/g" feeds/luci/collections/luci/Makefile
-sed -i "s/bootstrap/${deftheme}/g" feeds/luci/modules/luci-base/root/etc/config/luci
+deftheme="argon"
+case "${owner}" in
+  Leeson) deftheme="bootstrap" ;;
+  Lyc) deftheme="pink" ;;
+esac
+log "deftheme: ${deftheme}"
+apply_sed "s/bootstrap/${deftheme}/g" \
+  "feeds/luci/collections/luci/Makefile" \
+  "feeds/luci/modules/luci-base/root/etc/config/luci"
 
-# Add kernel build user
-[ -z "$(grep "CONFIG_KERNEL_BUILD_USER=" .config 2>/dev/null)" ] &&
-  echo 'CONFIG_KERNEL_BUILD_USER="${owner}"' >>.config ||
-  sed -i "s|\(CONFIG_KERNEL_BUILD_USER=\).*|\1$\"${owner}\"|" .config
+# Add kernel build metadata
+set_config_value "CONFIG_KERNEL_BUILD_USER" "\"${owner}\""
+set_config_value "CONFIG_KERNEL_BUILD_DOMAIN" "\"GitHub Actions\""
 
-# Add kernel build domain
-[ -z "$(grep "CONFIG_KERNEL_BUILD_DOMAIN=" .config 2>/dev/null)" ] &&
-  echo 'CONFIG_KERNEL_BUILD_DOMAIN="GitHub Actions"' >>.config ||
-  sed -i 's|\(CONFIG_KERNEL_BUILD_DOMAIN=\).*|\1$"GitHub Actions"|' .config
+# Adjust app menu text when those packages are present
+apply_sed 's|admin/vpn/|admin/services/|g' \
+  "package/feeds/luci/luci-app-ipsec-vpnd/root/usr/share/luci/menu.d/luci-app-ipsec-vpnd.json"
+apply_sed 's|"admin", "vpn"|"admin", "services"|g' \
+  "package/feeds/ing/luci-app-easytier/luasrc/controller/easytier.lua"
+apply_sed 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' \
+  "package/feeds/ing/luci-app-zerotier/luasrc/controller/zerotier.lua"
+apply_sed 's/"Argon 主题设置"/"主题设置"/g' \
+  "package/feeds/ing/luci-app-argon-config/po/*/argon-config.po"
 
-# Modify kernel and rootfs size
-#sed -i 's/CONFIG_TARGET_KERNEL_PARTSIZE=.*$/CONFIG_TARGET_KERNEL_PARTSIZE=64/' .config
-#sed -i 's/CONFIG_TARGET_ROOTFS_PARTSIZE=.*$/CONFIG_TARGET_ROOTFS_PARTSIZE=1024/' .config
-
-# Modify app list
-sed -i 's|admin/vpn/|admin/services/|g' package/feeds/luci/luci-app-ipsec-vpnd/root/usr/share/luci/menu.d/luci-app-ipsec-vpnd.json   # grep "IPSec VPN Server" -rl ./
-sed -i 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' package/feeds/ing/luci-app-zerotier/luasrc/controller/zerotier.lua               # grep "ZeroTier" -rl ./
-sed -i 's/"Argon 主题设置"/"主题设置"/g' package/feeds/ing/luci-app-argon-config/po/*/argon-config.po                                 # grep "Argon 主题设置" -rl ./
-
-# Info
-# luci-app-netdata 1.33.1汉化版 导致 web升级后 报错: /usr/lib/lua/luci/dispatcher.lua:220: /etc/config/luci seems to be corrupt, unable to find section 'main'
-
-# CONFIG_PACKAGE_luci-app-bypass_INCLUDE_Trojan-Go
-# CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan_GO
-# CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan
-# CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_IPT2Socks
-# CONFIG_PACKAGE_trojan-go  导致 web升级后 报错: /usr/lib/lua/luci/dispatcher.lua:220: /etc/config/luci seems to be corrupt, unable to find section 'main'
-
-# luci-app-beardropper 导致 web升级后 /etc/config/network 信息丢失
-# CONFIG_PACKAGE_kmod  导致 web升级 不能保存配置
+log "DIY customization complete"
