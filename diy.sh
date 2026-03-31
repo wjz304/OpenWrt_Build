@@ -122,6 +122,7 @@ write_nat_loopback_defaults() {
 #!/bin/sh
 
 changed=0
+need_reload=0
 
 for opt in flow_offloading flow_offloading_hw fullcone fullcone6; do
   if [ "$(uci -q get firewall.@defaults[0].${opt})" = "1" ]; then
@@ -131,6 +132,7 @@ for opt in flow_offloading flow_offloading_hw fullcone fullcone6; do
 done
 
 for section in $(uci -q show firewall | sed -n 's/^\(firewall\.@redirect\[[0-9]\+\]\)\..*/\1/p' | sort -u); do
+  [ "$(uci -q get ${section}.enabled)" = "0" ] && continue
   [ "$(uci -q get ${section}.target)" = "SNAT" ] && continue
 
   if [ "$(uci -q get ${section}.reflection)" != "1" ]; then
@@ -142,10 +144,23 @@ for section in $(uci -q show firewall | sed -n 's/^\(firewall\.@redirect\[[0-9]\
     uci -q set ${section}.reflection_src='internal'
     changed=1
   fi
+
+  if [ -z "$(uci -q get ${section}.reflection_zone)" ]; then
+    dest_zone="$(uci -q get ${section}.dest)"
+    if [ -n "${dest_zone}" ]; then
+      uci -q set ${section}.reflection_zone="${dest_zone}"
+      changed=1
+    fi
+  fi
 done
 
 if [ "${changed}" = "1" ]; then
   uci -q commit firewall
+  need_reload=1
+fi
+
+if [ "${need_reload}" = "1" ] && [ -x /etc/init.d/firewall ]; then
+  /etc/init.d/firewall reload >/dev/null 2>&1 || /etc/init.d/firewall restart >/dev/null 2>&1
 fi
 
 exit 0

@@ -187,7 +187,7 @@ pushd "${WORK_PATH}/${CONFIG_REPO}" >/dev/null
 configure_feeds
 stage_local_files
 
-./diy.sh "${WORK_PATH}/${CONFIG_REPO}" "${CONFIG_OWNER}" "${CONFIG_ARCH}"
+./diy.sh "${CONFIG_REPO}" "${CONFIG_OWNER}" "${CONFIG_ARCH}"
 make defconfig
 
 sync_config_back
