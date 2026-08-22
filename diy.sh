@@ -243,4 +243,14 @@ apply_sed 's/"vpn"/"services"/g; s/"VPN"/"Services"/g' \
 apply_sed 's/"Argon 主题设置"/"主题设置"/g' \
   "package/feeds/ing/luci-app-argon-config/po/*/argon-config.po"
 
+# Apply local patches before further customization
+local_patches_dir="${WORK_PATH:-$(pwd)}/local-patches"
+if [ -d "${local_patches_dir}" ]; then
+  for p in "${local_patches_dir}"/*.patch; do
+    [ -e "${p}" ] || continue
+    log "applying patch: $(basename "${p}")"
+    patch -p1 --silent --forward --input="${p}" >/dev/null 2>&1 || true
+  done
+fi
+
 log "DIY customization complete"

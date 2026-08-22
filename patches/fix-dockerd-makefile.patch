@@ -1,0 +1,7 @@
+--- a/feeds/packages/utils/dockerd/Makefile
++++ b/feeds/packages/utils/dockerd/Makefile
+@@ -188,6 +188,4 @@ define Build/Compile
+ 	$(MAKE) -C "$(PKG_BUILD_DIR)" bundles/binary-daemon/dockerd
+-	echo "Copying nested executables into bundles/binary-daemon"
+-	$(MAKE) -C "$(PKG_BUILD_DIR)" bundle binary-daemon-dir="$(PKG_BUILD_DIR)/bundles/binary-daemon"
+ endef

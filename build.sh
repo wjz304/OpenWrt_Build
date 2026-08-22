@@ -181,6 +181,12 @@ collect_firmware() {
 prepare_repo
 
 export FORCE_UNSAFE_CONFIGURE=1
+# Enable ccache for faster re-builds
+if command -v ccache >/dev/null 2>&1; then
+  export CCACHE_DIR="${WORK_PATH}/ccache"
+  export CCACHE_MAXSIZE="500M"
+  log "ccache enabled at ${CCACHE_DIR}"
+fi
 
 pushd "${WORK_PATH}/${CONFIG_REPO}" >/dev/null
 
@@ -196,14 +202,26 @@ log "Downloading packages"
 make download -j"$(nproc)" V=s
 
 log "$(nproc) thread compile"
-if ! make -j"$(nproc)" V=s; then
-  make -j1 V=s
+if ! make -j"$(nproc)" V=s 2>&1 | tee build.log; then
+  log "Multi-thread build failed; retrying with single thread (max 2 attempts)"
+  if ! make -j1 V=s 2>&1 | tee -a build.log; then
+    log "Build failed! Showing last 80 lines of errors:"
+    tail -n 80 build.log
+    popd >/dev/null
+    exit 1
+  fi
 fi
 
 collect_firmware
 
 popd >/dev/null
 
-du -chd1 "${WORK_PATH}/${CONFIG_REPO}"
+# Clean up to save disk space
+rm -rf "${WORK_PATH}/${CONFIG_REPO}/build_dir" \
+       "${WORK_PATH}/${CONFIG_REPO}/staging_dir" \
+       "${WORK_PATH}/${CONFIG_REPO}/tmp" \
+       "${WORK_PATH}/${CONFIG_REPO}/dl" 2>/dev/null || true
+
+du -chd1 "${WORK_PATH}/${CONFIG_REPO}" 2>/dev/null || true
 
 log "Done"
