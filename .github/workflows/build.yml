@@ -92,7 +92,7 @@ jobs:
             swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
 
           git clone --depth=1 https://github.com/openwrt-dev/po2lmo
-          (cd po2lmo && sudo make && sudo make install)
+          (cd po2lmo && sudo make CC="cc -std=gnu17" && sudo make CC="cc -std=gnu17" install)
           rm -rf po2lmo
 
           sudo apt-get autoremove -y

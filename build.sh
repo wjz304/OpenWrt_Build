@@ -89,6 +89,7 @@ prepare_repo() {
   fi
 
   log "Updating ${CONFIG_REPO}"
+  git -C "${repo_path}" checkout -- . 2>/dev/null || true
   git -C "${repo_path}" pull --ff-only
 }
 
@@ -178,6 +179,219 @@ collect_firmware() {
   popd >/dev/null
 }
 
+# Temporary workarounds for upstream package build failures.
+# Remove the relevant block once the upstream fix is available.
+apply_workarounds() {
+  # gettext-full 0.22.5: gnulib 2026-07-04's exitfail.h has C++ guards and
+  # no DLL_VARIABLE, but gettext 0.22.5's version uses DLL_VARIABLE without
+  # guards. gnulib-tool.py fails to patch exitfail.h. Sync all 4 copies to
+  # the gnulib version so gnulib-tool finds nothing to change.
+  local gettext_patch_dir="package/libs/gettext-full/patches"
+  if [ -d "package/libs/gettext-full" ] \
+    && [ ! -f "${gettext_patch_dir}/300-sync-exitfail-h.patch" ]; then
+    mkdir -p "${gettext_patch_dir}"
+    cat >"${gettext_patch_dir}/300-sync-exitfail-h.patch" <<'PATCH_EOF'
+--- a/gettext-runtime/gnulib-lib/exitfail.h
++++ b/gettext-runtime/gnulib-lib/exitfail.h
+@@ -1,4 +1,4 @@
+ /* Failure exit status
+ 
+-   Copyright (C) 2002, 2009-2024 Free Software Foundation, Inc.
++   Copyright (C) 2002, 2009-2025 Free Software Foundation, Inc.
+ 
+    This file is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as
+@@ -16,3 +16,11 @@
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+ 
+-extern DLL_VARIABLE int volatile exit_failure;
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++extern int volatile exit_failure;
++
++
++#ifdef __cplusplus
++}
++#endif
+--- a/gettext-tools/gnulib-lib/exitfail.h
++++ b/gettext-tools/gnulib-lib/exitfail.h
+@@ -1,4 +1,4 @@
+ /* Failure exit status
+ 
+-   Copyright (C) 2002, 2009-2024 Free Software Foundation, Inc.
++   Copyright (C) 2002, 2009-2025 Free Software Foundation, Inc.
+ 
+    This file is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as
+@@ -16,3 +16,11 @@
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+ 
+-extern DLL_VARIABLE int volatile exit_failure;
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++extern int volatile exit_failure;
++
++
++#ifdef __cplusplus
++}
++#endif
+--- a/gettext-tools/libgettextpo/exitfail.h
++++ b/gettext-tools/libgettextpo/exitfail.h
+@@ -1,4 +1,4 @@
+ /* Failure exit status
+ 
+-   Copyright (C) 2002, 2009-2024 Free Software Foundation, Inc.
++   Copyright (C) 2002, 2009-2025 Free Software Foundation, Inc.
+ 
+    This file is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as
+@@ -16,3 +16,11 @@
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+ 
+-extern DLL_VARIABLE int volatile exit_failure;
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++extern int volatile exit_failure;
++
++
++#ifdef __cplusplus
++}
++#endif
+--- a/libtextstyle/lib/exitfail.h
++++ b/libtextstyle/lib/exitfail.h
+@@ -1,4 +1,4 @@
+ /* Failure exit status
+ 
+-   Copyright (C) 2002, 2009-2024 Free Software Foundation, Inc.
++   Copyright (C) 2002, 2009-2025 Free Software Foundation, Inc.
+ 
+    This file is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Lesser General Public License as
+@@ -16,3 +16,11 @@
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+ 
+-extern DLL_VARIABLE int volatile exit_failure;
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++
++extern int volatile exit_failure;
++
++
++#ifdef __cplusplus
++}
++#endif
+PATCH_EOF
+    log "Added exitfail.h sync patch to gettext-full"
+  fi
+
+  # b43-tools: assembler/util.h has 'typedef _Bool bool;' which is illegal
+  # in C23 (bool is a keyword). Use stdbool.h instead.
+  local b43_patch_dir="tools/b43-tools/patches"
+  if [ -d "tools/b43-tools" ] \
+    && [ ! -f "${b43_patch_dir}/100-fix-bool-typedef.patch" ]; then
+    mkdir -p "${b43_patch_dir}"
+    cat >"${b43_patch_dir}/100-fix-bool-typedef.patch" <<'PATCH_EOF'
+--- a/assembler/util.h
++++ b/assembler/util.h
+@@ -22,7 +22,7 @@
+ void * xmalloc(size_t size);
+ char * xstrdup(const char *str);
+ 
+-typedef _Bool bool;
++#include <stdbool.h>
+ 
+ typedef uint16_t be16_t;
+ typedef uint32_t be32_t;
+PATCH_EOF
+    log "Added bool typedef fix patch to b43-tools"
+  fi
+
+  # dockerd 29.6.1: copy_binaries in hack/make/binary-daemon tries to cp
+  # nested executables (containerd, runc, ...) that are not in PATH during
+  # OpenWrt build, causing 'cp: cannot stat' failure. Skip missing files.
+  local dockerd_pkg_dir="feeds/packages/utils/dockerd"
+  local dockerd_patch_dir="${dockerd_pkg_dir}/patches"
+  if [ -d "${dockerd_pkg_dir}" ] \
+    && [ ! -f "${dockerd_patch_dir}/100-fix-copy-binaries.patch" ]; then
+    mkdir -p "${dockerd_patch_dir}"
+    cat >"${dockerd_patch_dir}/100-fix-copy-binaries.patch" <<'PATCH_EOF'
+--- a/hack/make/binary-daemon
++++ b/hack/make/binary-daemon
+@@ -15,6 +15,8 @@
+ 	fi
+ 	echo "Copying nested executables into $dir"
+ 	for file in containerd containerd-shim-runc-v2 ctr runc docker-init rootlesskit dockerd-rootless.sh dockerd-rootless-setuptool.sh; do
+-		cp -f "$(command -v "$file")" "$dir/"
++		if command -v "$file" > /dev/null 2>&1; then
++			cp -f "$(command -v "$file")" "$dir/"
++		fi
+ 	done
+ }
+PATCH_EOF
+    log "Added copy_binaries fix patch to dockerd"
+  fi
+
+  # hostapd Makefile: wpa-supplicant EXTRA_DEPENDS uses "r$(PKG_RELEASE)"
+  # while hostapd/wpad use "$(PKG_RELEASE)", causing version mismatch:
+  # wpa-supplicant wants hostapd-common (=...-r1) but actual is (...-1)
+  local hostapd_makefile="package/network/services/hostapd/Makefile"
+  if [ -f "${hostapd_makefile}" ] \
+    && grep -q 'hostapd-common (=$(PKG_VERSION)-r$(PKG_RELEASE))' "${hostapd_makefile}"; then
+    sed -i 's/hostapd-common (=$(PKG_VERSION)-r$(PKG_RELEASE))/hostapd-common (=$(PKG_VERSION)-$(PKG_RELEASE))/' "${hostapd_makefile}"
+    log "Fixed wpa-supplicant EXTRA_DEPENDS version mismatch in hostapd Makefile"
+  fi
+
+  # wifi-scripts conflicts with base-files (/sbin/wifi) and hostapd-common
+  # (/etc/rc.button/wps, /lib/netifd/hostapd.sh). kmod-cfg80211 depends on
+  # wifi-scripts so we can't disable it; instead remove the conflicting files
+  # from wifi-scripts and let the canonical owners provide them.
+  local wifi_scripts_files="package/network/config/wifi-scripts/files"
+  if [ -d "${wifi_scripts_files}" ]; then
+    rm -f "${wifi_scripts_files}/sbin/wifi"
+    rm -f "${wifi_scripts_files}/etc/rc.button/wps"
+    rm -f "${wifi_scripts_files}/lib/netifd/hostapd.sh"
+    log "Removed conflicting files from wifi-scripts"
+  fi
+
+  # perl 5.28.1 [host]: ext/SDBM_File/sdbm.c declares malloc/free with
+  # Malloc_t=char* / Free_t=int (from config.h), which conflicts with
+  # modern <stdlib.h> declarations (void*/void). Guard these externs with
+  # MYMALLOC so they only apply when perl uses its own allocator.
+  local perl_patch_dir="feeds/packages/lang/perl/patches"
+  if [ -d "feeds/packages/lang/perl" ] \
+    && [ ! -f "${perl_patch_dir}/931-sdbm-guard-malloc-decls.patch" ]; then
+    mkdir -p "${perl_patch_dir}"
+    cat >"${perl_patch_dir}/931-sdbm-guard-malloc-decls.patch" <<'PATCH_EOF'
+--- a/ext/SDBM_File/sdbm.c
++++ b/ext/SDBM_File/sdbm.c
+@@ -35,8 +35,10 @@
+ extern "C" {
+ #endif
+ 
++#if defined(MYMALLOC) && !defined(PERL_POLLUTE_MALLOC)
+ extern Malloc_t malloc(MEM_SIZE);
+ extern Free_t free(Malloc_t);
++#endif
+ 
+ #ifdef __cplusplus
+ }
+ #endif
+PATCH_EOF
+    log "Added sdbm.c malloc/free guard patch to perl"
+  fi
+}
+
 prepare_repo
 
 export FORCE_UNSAFE_CONFIGURE=1
@@ -188,6 +402,7 @@ configure_feeds
 stage_local_files
 
 ./diy.sh "${CONFIG_REPO}" "${CONFIG_OWNER}" "${CONFIG_ARCH}"
+apply_workarounds
 make defconfig
 
 sync_config_back
